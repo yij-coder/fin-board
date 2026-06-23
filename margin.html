@@ -414,6 +414,12 @@ $('target').addEventListener('input',calc);
 $('modeHint').textContent=HINTS[mode];
 calc();
 
+// 防止捲動／滑動時不小心改到數字欄位的值（number 欄位通病）
+document.addEventListener('wheel', e=>{
+  const el=document.activeElement;
+  if(el&&el.tagName==='INPUT'&&el.type==='number') el.blur();
+}, {passive:true});
+
 // PWA：註冊 service worker（可加到主畫面、離線可用）
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
