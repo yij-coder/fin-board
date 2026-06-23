@@ -35,6 +35,30 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
+// 股票融資/融券 整戶擔保維持率畫面
+const MARGIN_PROMPT =
+  "You are extracting a Taiwan stock margin (融資/融券) whole-account " +
+  "collateral-maintenance screen from a screenshot. Return these aggregate totals " +
+  "as plain numbers (no commas or units; use 0 if a value is absent): " +
+  "fin_collateral (融資擔保品市值), fin_loan (融資總額 or 融資金額), " +
+  "short_collateral (融券擔保品市值), short_amount (融券總額 or 融券保證金), " +
+  "pledge (抵繳保證品市值/抵繳金額). " +
+  "Prefer the whole-account (整戶/合計/小計) figures when shown; if the screen only " +
+  "lists per-stock rows, sum the relevant columns into these totals.";
+
+const MARGIN_SCHEMA = {
+  type: "object",
+  properties: {
+    fin_collateral: { type: "number" },
+    fin_loan: { type: "number" },
+    short_collateral: { type: "number" },
+    short_amount: { type: "number" },
+    pledge: { type: "number" },
+  },
+  required: ["fin_collateral", "fin_loan", "short_collateral", "short_amount", "pledge"],
+  additionalProperties: false,
+};
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -47,9 +71,12 @@ export default {
       return new Response("POST only", { status: 405, headers: cors });
 
     try {
-      const { image, media_type } = await request.json();
+      const { image, media_type, kind } = await request.json();
       if (!image)
         return json({ error: "missing image" }, 400, cors);
+      const isMargin = kind === "margin";
+      const prompt = isMargin ? MARGIN_PROMPT : PROMPT;
+      const schema = isMargin ? MARGIN_SCHEMA : SCHEMA;
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -73,11 +100,11 @@ export default {
                     data: image,
                   },
                 },
-                { type: "text", text: PROMPT },
+                { type: "text", text: prompt },
               ],
             },
           ],
-          output_config: { format: { type: "json_schema", schema: SCHEMA } },
+          output_config: { format: { type: "json_schema", schema: schema } },
         }),
       });
 
