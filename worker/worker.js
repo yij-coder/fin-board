@@ -37,13 +37,13 @@ const SCHEMA = {
 
 // 股票融資/融券 整戶擔保維持率畫面
 const MARGIN_PROMPT =
-  "You are extracting a Taiwan stock margin-financing (融資) holdings screen from a " +
+  "You are extracting a Taiwan stock margin-financing (融資) holdings/庫存 screen from a " +
   "screenshot. Return one entry in 'positions' for each stock row, with: " +
-  "name (股票名稱), loan (融資金額 for that stock, a number), value (擔保品市值/市值/" +
-  "現值 of that stock, a number). Then return aggregate totals (0 if absent): " +
-  "short_collateral (融券擔保品市值), short_amount (融券總額/融券保證金), " +
-  "pledge (抵繳保證品市值/抵繳金額). All numbers must be plain numbers with no commas " +
-  "or units. Skip total/subtotal rows in 'positions' (they go into the aggregates).";
+  "name (股票名稱), cost (投資成本/成交金額 of that stock, a number — NOT the maintenance " +
+  "ratio), value (現值/市值/擔保品市值 of that stock, a number). Then return aggregate " +
+  "totals (0 if absent): short_collateral (融券擔保品市值), short_amount (融券總額/" +
+  "融券保證金), pledge (抵繳保證品市值/抵繳金額). All numbers must be plain numbers with no " +
+  "commas or units. Skip total/subtotal rows in 'positions' (they go into the aggregates).";
 
 const MARGIN_SCHEMA = {
   type: "object",
@@ -54,10 +54,10 @@ const MARGIN_SCHEMA = {
         type: "object",
         properties: {
           name: { type: "string" },
-          loan: { type: "number" },
+          cost: { type: "number" },
           value: { type: "number" },
         },
-        required: ["name", "loan", "value"],
+        required: ["name", "cost", "value"],
         additionalProperties: false,
       },
     },
