@@ -118,6 +118,11 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <div id="paneStatement">
     <div class="card">
       <h2>照抄對帳單三個數字</h2>
+      <div class="field"><label>📷 截圖自動辨識（選填）</label>
+        <input type="text" id="ocrUrlS" placeholder="貼上你的 Worker 網址（與多檔部位共用）"></div>
+      <input type="file" id="ocrFileS" accept="image/*" style="display:none">
+      <button class="addbtn" id="ocrBtnS" style="border-style:solid;color:var(--green);margin-bottom:12px">📷 上傳對帳單截圖自動帶入</button>
+      <div class="hint" id="ocrStatusS" style="text-align:center;margin-bottom:8px"></div>
       <div class="field">
         <label>權益數</label>
         <input type="number" id="stEq" placeholder="例：8829947" inputmode="decimal">
@@ -590,6 +595,33 @@ $('ocrFile').addEventListener('change',async e=>{
     $('ocrStatus').textContent='已帶入 '+arr.length+' 檔 ✓ 請務必核對口數／均價／市價';
   }catch(err){ $('ocrStatus').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）'; }
   finally{ e.target.value=''; }
+});
+
+// 對帳單模式：上傳對帳單截圖自動帶入權益數／原始／維持保證金（共用同一 Worker）
+$('ocrUrlS').value=localStorage.getItem(OCR_URL_KEY)||'';
+$('ocrUrlS').addEventListener('input',()=>localStorage.setItem(OCR_URL_KEY,$('ocrUrlS').value.trim()));
+$('ocrBtnS').addEventListener('click',()=>{
+  if(!(localStorage.getItem(OCR_URL_KEY)||$('ocrUrlS').value).trim()){$('ocrStatusS').textContent='請先貼上辨識服務（Worker）網址';return;}
+  $('ocrFileS').click();
+});
+$('ocrFileS').addEventListener('change',async e=>{
+  const f=e.target.files[0]; const url=(localStorage.getItem(OCR_URL_KEY)||$('ocrUrlS').value).trim();
+  if(!f||!url){e.target.value='';return;}
+  $('ocrStatusS').textContent='辨識中…請稍候（約數秒）';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+    const resp=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({kind:'statement',image:b64,media_type:f.type||'image/png'})});
+    const data=await resp.json();
+    if(data.error){$('ocrStatusS').textContent='辨識失敗：'+data.error+'（可改用手動）';return;}
+    let n=0;
+    if(data.equity!=null){$('stEq').value=data.equity;n++;}
+    if(data.initial_margin!=null){$('stIM').value=data.initial_margin;n++;}
+    if(data.maintenance_margin!=null){$('stMM').value=data.maintenance_margin;n++;}
+    calc(); save();
+    $('ocrStatusS').textContent=n?('已帶入 '+n+' 個數字 ✓ 請核對權益數／原始／維持保證金'):'沒有辨識到，請改用手動輸入';
+  }catch(err){$('ocrStatusS').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）';}
+  finally{e.target.value='';}
 });
 
 // 防止捲動／滑動時不小心改到數字欄位的值（number 欄位通病）
