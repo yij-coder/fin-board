@@ -63,7 +63,7 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
 <div class="wrap">
   <a href="./index.html" style="color:#93a0b8;text-decoration:none;font-size:13px">← 首頁</a>
   <h1>股票融資 · 整戶維持率／追繳試算</h1>
-  <div class="sub">逐股填融資金額與市值，自動算整戶維持率與要補多少現金</div>
+  <div class="sub">逐股填成本與市值，自動算融資金額、整戶維持率與要補多少現金</div>
 
   <!-- 帳戶 -->
   <div class="card">
@@ -91,7 +91,10 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <!-- 融資逐股 -->
   <div class="card">
     <h2>融資部位（一檔一列）</h2>
-    <div class="collab"><span>融資金額</span><span>擔保品市值（市值）</span></div>
+    <div class="field" style="margin-bottom:10px"><label>融資成數 %</label>
+      <input type="number" id="finRate" value="60" min="1" max="100" step="1" inputmode="decimal">
+      <div class="hint">融資金額＝成本×成數（上市約60、上櫃約50）。已知實際融資金額者，把成數設100、成本欄直接填融資金額。</div></div>
+    <div class="collab"><span>成本（成交金額）</span><span>市值（現值）</span></div>
     <div id="rows"></div>
     <button class="addbtn" id="addRow">＋ 新增一檔</button>
     <div class="subtotal"><span>融資總額合計</span><span class="v" id="rFinLoan">—</span></div>
@@ -143,7 +146,7 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <details>
     <summary>計算方式說明</summary>
     <p>
-      每檔維持率＝市值 ÷ 融資金額；融資維持率＝市值合計 ÷ 融資金額合計。<br>
+      融資金額＝成本 × 融資成數；每檔維持率＝市值 ÷ 融資金額；融資維持率＝市值合計 ÷ 融資金額合計。<br>
       整戶擔保品總市值＝融資市值合計 ＋ 融券擔保 ＋ 抵繳保證品。<br>
       整戶維持率＝整戶擔保 ÷（融資總額＋融券總額）。<br>
       需補現金＝MAX(整戶總額 × 目標維持率 − 整戶擔保, 0)。數字以你的券商為準。
@@ -157,14 +160,14 @@ const $=id=>document.getElementById(id);
 const num=el=>{const v=parseFloat(typeof el==='string'?$(el).value:el.value);return isNaN(v)?null:v;};
 const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
 const pct=r=>(r*100).toFixed(1)+' %';
-const AGG=['shortCol','shortAmt','pledge','target','addCash'];
+const AGG=['finRate','shortCol','shortAmt','pledge','target','addCash'];
 
 // ---- 逐股列 ----
 function rowTemplate(){
   const d=document.createElement('div'); d.className='prow';
   d.innerHTML='<input class="pName" type="text" placeholder="股票名稱，例：台積電">'
    +'<div class="top">'
-   +'<input class="pLoan" type="number" placeholder="融資金額" inputmode="decimal">'
+   +'<input class="pCost" type="number" placeholder="成本" inputmode="decimal">'
    +'<input class="pVal" type="number" placeholder="市值" inputmode="decimal"></div>'
    +'<div class="bot"><span class="pl"><span class="lab">維持率</span><span class="plv">—</span></span>'
    +'<button class="pDel">刪除</button></div>';
@@ -181,9 +184,11 @@ $('rows').addEventListener('click',e=>{
 $('rows').addEventListener('input',()=>{calc();save();});
 
 function finTotals(){
+  const rate=(num('finRate')!=null)?num('finRate')/100:0.6;
   let loan=0,col=0,any=false;
   $('rows').querySelectorAll('.prow').forEach(r=>{
-    const l=num(r.querySelector('.pLoan')), v=num(r.querySelector('.pVal'));
+    const cost=num(r.querySelector('.pCost')), v=num(r.querySelector('.pVal'));
+    const l=(cost!=null)?cost*rate:null;
     const cell=r.querySelector('.plv');
     if(l!=null&&v!=null&&l>0){ cell.textContent=pct(v/l); cell.className='plv '+(v/l<1.3?'neg':'pos'); }
     else{ cell.textContent='—'; cell.className='plv'; }
@@ -230,7 +235,7 @@ let store=null;
 function snapshot(){
   const inputs={}; AGG.forEach(id=>inputs[id]=$(id).value);
   const rows=[...$('rows').querySelectorAll('.prow')].map(r=>({
-    name:r.querySelector('.pName').value, loan:r.querySelector('.pLoan').value, val:r.querySelector('.pVal').value }));
+    name:r.querySelector('.pName').value, cost:r.querySelector('.pCost').value, val:r.querySelector('.pVal').value }));
   return {inputs,rows};
 }
 function persist(){ try{localStorage.setItem(LS,JSON.stringify(store));}catch(e){} }
@@ -240,7 +245,7 @@ function applyData(d){
   $('rows').innerHTML='';
   const rows=(d.rows&&d.rows.length)?d.rows:[{},{},{}];
   rows.forEach(rd=>{const el=rowTemplate();$('rows').appendChild(el);
-    el.querySelector('.pName').value=rd.name||''; el.querySelector('.pLoan').value=rd.loan||''; el.querySelector('.pVal').value=rd.val||'';});
+    el.querySelector('.pName').value=rd.name||''; el.querySelector('.pCost').value=(rd.cost!=null?rd.cost:(rd.loan||'')); el.querySelector('.pVal').value=rd.val||'';});
   const inp=d.inputs||{};
   AGG.forEach(id=>$(id).value=(inp[id]!=null?inp[id]:$(id).defaultValue));
   calc();
@@ -281,14 +286,14 @@ $('ocrFile').addEventListener('change',async e=>{
     if(arr.length){
       $('rows').innerHTML='';
       arr.forEach(p=>{const el=rowTemplate();$('rows').appendChild(el);
-        el.querySelector('.pName').value=p.name||''; el.querySelector('.pLoan').value=(p.loan??''); el.querySelector('.pVal').value=(p.value??'');});
+        el.querySelector('.pName').value=p.name||''; el.querySelector('.pCost').value=(p.cost??p.loan??''); el.querySelector('.pVal').value=(p.value??'');});
     }
     if(data.short_collateral!=null)$('shortCol').value=data.short_collateral||'';
     if(data.short_amount!=null)$('shortAmt').value=data.short_amount||'';
     if(data.pledge!=null)$('pledge').value=data.pledge||'';
     if(!$('rows').children.length) addRow();
     calc();save();
-    $('ocrStatus').textContent='已帶入 '+arr.length+' 檔 ✓ 請務必核對融資金額與市值';
+    $('ocrStatus').textContent='已帶入 '+arr.length+' 檔 ✓ 請務必核對成本與市值';
   }catch(err){$('ocrStatus').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）';}
   finally{e.target.value='';}
 });
