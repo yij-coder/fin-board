@@ -81,6 +81,11 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
         <button class="abtn del" id="acctDel">刪除</button></div>
     </div>
     <div class="hint" style="margin-top:8px">資料自動存在這台裝置；切換帳戶看各自的部位。</div>
+    <div class="row" style="margin-top:10px">
+      <div class="field" style="margin-bottom:0"><button class="abtn" id="acctExport">⤴ 匯出備份</button></div>
+      <div class="field" style="margin-bottom:0"><button class="abtn" id="acctImport">⤵ 匯入到此裝置</button></div>
+    </div>
+    <div class="hint" id="acctIO" style="margin-top:6px">換手機／換電腦：原裝置按「匯出」拿到一段碼，新裝置按「匯入」貼上即可整包搬過去。</div>
   </div>
 
   <!-- 融資逐股 -->
@@ -296,6 +301,24 @@ $('ocrFile').addEventListener('change',async e=>{
   if(store.current>=store.accounts.length)store.current=0;
   renderAcctSel(); applyData(store.accounts[store.current].data);
 })();
+
+$('acctExport').addEventListener('click',()=>{
+  save();
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(store))));
+  if(navigator.clipboard) navigator.clipboard.writeText(code).catch(()=>{});
+  $('acctIO').textContent='備份碼已複製（'+code.length+' 字），貼到另一台裝置的「匯入」。';
+  prompt('備份碼（全選複製，貼到另一台裝置按「匯入」）：',code);
+});
+$('acctImport').addEventListener('click',()=>{
+  const code=prompt('貼上從另一台裝置複製的備份碼：'); if(!code)return;
+  try{
+    const obj=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if(!obj||!Array.isArray(obj.accounts)||!obj.accounts.length) throw 0;
+    store=obj; if(store.current>=store.accounts.length) store.current=0;
+    persist(); renderAcctSel(); applyData(store.accounts[store.current].data);
+    $('acctIO').textContent='匯入成功，共 '+store.accounts.length+' 個帳戶（已覆蓋此裝置原資料）。';
+  }catch(e){ $('acctIO').textContent='備份碼無效，請確認是完整一段複製過來的。'; }
+});
 
 document.addEventListener('wheel',e=>{const el=document.activeElement;
   if(el&&el.tagName==='INPUT'&&el.type==='number')el.blur();},{passive:true});
