@@ -1,5 +1,5 @@
 // 股票期貨追繳試算 — 離線快取 service worker
-const CACHE = 'margin-v5';
+const CACHE = 'margin-v6';
 const ASSETS = [
   './margin.html',
   './manifest.json',
