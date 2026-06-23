@@ -35,7 +35,7 @@ h1{font-size:20px;margin:4px 0 2px;text-align:center}
 .field{margin-bottom:12px}
 .field>label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
 .field .hint{font-size:11px;color:#6b7892;margin-top:4px}
-input[type=number],select{width:100%;padding:11px 12px;border-radius:10px;
+input[type=number],input[type=text],select{width:100%;padding:11px 12px;border-radius:10px;
   border:1px solid var(--line);background:var(--bg);color:var(--txt);
   font-size:16px;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{
@@ -45,6 +45,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .hidden{display:none}
 /* 多檔部位列 */
 .prow{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--bg)}
+.prow .pName{width:100%;padding:9px 10px;font-size:14px;margin-bottom:6px}
 .prow .top{display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:6px}
 .prow .top input,.prow .top select{padding:8px 8px;font-size:14px}
 .prow .bot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
@@ -77,6 +78,7 @@ details{margin-top:8px}summary{font-size:12px;color:var(--muted);cursor:pointer}
 details p{font-size:12px;color:#8392ab;margin:8px 0 0}
 </style></head><body>
 <div class="wrap">
+  <a href="./index.html" style="color:#93a0b8;text-decoration:none;font-size:13px">← 首頁</a>
   <h1>股票期貨 · 追繳保證金試算</h1>
   <div class="sub">填入數字，自動算出「我要補多少錢」</div>
 
@@ -297,7 +299,8 @@ $('segSub').addEventListener('click',e=>{
 function rowTemplate(){
   const d=document.createElement('div'); d.className='prow';
   d.innerHTML=
-   '<div class="top">'
+   '<input class="pName" type="text" placeholder="商品名稱，例：聯電期07">'
+   +'<div class="top">'
    +'<select class="pBs"><option value="buy">買進</option><option value="sell">賣出</option></select>'
    +'<input class="pLots" type="number" placeholder="口數" inputmode="decimal">'
    +'<input class="pAvg" type="number" placeholder="均價" step="0.01" inputmode="decimal">'
@@ -327,6 +330,8 @@ function positionsTotal(){
     const avg=num(r.querySelector('.pAvg'));
     const mkt=num(r.querySelector('.pMkt'));
     const cell=r.querySelector('.plv');
+    const nm=r.querySelector('.pName').value.trim();
+    const lab=r.querySelector('.lab'); if(lab) lab.textContent=(nm?nm+'　':'')+'未平倉損益';
     if(lots!=null&&avg!=null&&mkt!=null&&mult){
       const pl=(bs==='buy'?(mkt-avg):(avg-mkt))*mult*lots;
       total+=pl; any=true;
