@@ -1,0 +1,17 @@
+{
+  "name": "股票期貨追繳保證金試算",
+  "short_name": "追繳試算",
+  "description": "填數字即可算出股票期貨的原始/維持保證金、浮動損益與需補繳金額",
+  "start_url": "./margin.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

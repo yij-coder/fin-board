@@ -1,7 +1,14 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>股票期貨 追繳保證金試算</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0b0f17">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="追繳試算">
 <style>
 :root{
   --bg:#0b0f17;--card:#141b29;--line:#27314a;--txt:#e8edf6;--muted:#93a0b8;
@@ -202,7 +209,8 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
     <div class="res-row"><span class="k">維持保證金</span><span class="v" id="rMM">—</span></div>
     <div class="res-row" id="rowPL"><span class="k">浮動損益</span><span class="v" id="rPL">—</span></div>
     <div class="res-row"><span class="k">權益數</span><span class="v" id="rEq">—</span></div>
-    <div class="res-row"><span class="k">維持率（權益/原始）</span><span class="v" id="rRatio">—</span></div>
+    <div class="res-row"><span class="k">風險指標（權益/原始）</span><span class="v" id="rRatio">—</span></div>
+    <div class="res-row"><span class="k">維持率（權益/維持，&lt;100%追繳）</span><span class="v" id="rMaint">—</span></div>
     <div class="res-row"><span class="k">可動用（出金）保證金</span><span class="v" id="rWd">—</span></div>
     <div class="res-row" id="rowTrig"><span class="k">預估追繳價位</span><span class="v" id="rTrig">—</span></div>
 
@@ -211,6 +219,18 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
       <div class="big" id="stBig">—</div>
       <div class="note" id="stNote"></div>
     </div>
+  </div>
+
+  <!-- ============ 免追繳安全水位 ============ -->
+  <div class="card">
+    <h2>免追繳安全水位</h2>
+    <div class="field">
+      <label>目標維持率 %（權益 ÷ 維持保證金）</label>
+      <input type="number" id="target" value="100" min="0" step="1" inputmode="decimal">
+      <div class="hint">100% 就是追繳線；想留緩衝可抓 130% 以上。</div>
+    </div>
+    <div class="res-row"><span class="k">達標所需權益數</span><span class="v" id="rNeed">—</span></div>
+    <div class="res-row"><span class="k">距目標還要補</span><span class="v" id="rGap">—</span></div>
   </div>
 
   <details>
@@ -315,6 +335,20 @@ function render(im,mm,eq,pl,trig){
   else{$('rPL').textContent='—';$('rPL').className='v';$('rowPL').style.display=(mode==='statement')?'none':'';}
   $('rEq').textContent=eq!=null?fmtNT(eq):'—';
   $('rRatio').textContent=(eq!=null&&im)?(eq/im*100).toFixed(1)+' %':'—';
+  // 維持率 = 權益 / 維持保證金（<100% 即追繳）
+  if(eq!=null&&mm){const mr=eq/mm*100;$('rMaint').textContent=mr.toFixed(1)+' %';
+    $('rMaint').className='v '+(mr<100?'neg':'pos');}
+  else{$('rMaint').textContent='—';$('rMaint').className='v';}
+  // 免追繳安全水位
+  const tgt=num('target');
+  if(mm!=null&&tgt!=null){
+    const need=mm*tgt/100;
+    $('rNeed').textContent=fmtNT(need);
+    if(eq!=null){const gap=need-eq;
+      $('rGap').textContent=gap>0?fmtNT(gap):'已達標（NT$ 0）';
+      $('rGap').className='v '+(gap>0?'neg':'pos');}
+    else{$('rGap').textContent='—';$('rGap').className='v';}
+  }else{$('rNeed').textContent='—';$('rGap').textContent='—';$('rGap').className='v';}
   // 可動用出金 = 權益 - 原始
   if(eq!=null&&im!=null){const wd=eq-im;$('rWd').textContent=fmtNT(wd);$('rWd').className='v '+(wd>=0?'pos':'neg');}
   else{$('rWd').textContent='—';$('rWd').className='v';}
@@ -376,7 +410,13 @@ function calc(){
 
 document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input')
   .forEach(el=>el.addEventListener('input',calc));
+$('target').addEventListener('input',calc);
 $('modeHint').textContent=HINTS[mode];
 calc();
+
+// PWA：註冊 service worker（可加到主畫面、離線可用）
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
 </script>
 </body></html>
