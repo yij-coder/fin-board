@@ -1,5 +1,5 @@
 // 股票期貨追繳試算 — 離線快取 service worker
-const CACHE = 'margin-v4';
+const CACHE = 'margin-v5';
 const ASSETS = [
   './margin.html',
   './manifest.json',
@@ -20,11 +20,11 @@ self.addEventListener('activate', e => {
   );
 });
 
-// 網路優先，失敗時回快取（確保離線可用、上線時拿到最新）
+// 一律繞過瀏覽器快取向網路要最新版（no-store），離線時才回快取
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
