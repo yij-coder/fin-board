@@ -37,25 +37,35 @@ const SCHEMA = {
 
 // 股票融資/融券 整戶擔保維持率畫面
 const MARGIN_PROMPT =
-  "You are extracting a Taiwan stock margin (融資/融券) whole-account " +
-  "collateral-maintenance screen from a screenshot. Return these aggregate totals " +
-  "as plain numbers (no commas or units; use 0 if a value is absent): " +
-  "fin_collateral (融資擔保品市值), fin_loan (融資總額 or 融資金額), " +
-  "short_collateral (融券擔保品市值), short_amount (融券總額 or 融券保證金), " +
-  "pledge (抵繳保證品市值/抵繳金額). " +
-  "Prefer the whole-account (整戶/合計/小計) figures when shown; if the screen only " +
-  "lists per-stock rows, sum the relevant columns into these totals.";
+  "You are extracting a Taiwan stock margin-financing (融資) holdings screen from a " +
+  "screenshot. Return one entry in 'positions' for each stock row, with: " +
+  "name (股票名稱), loan (融資金額 for that stock, a number), value (擔保品市值/市值/" +
+  "現值 of that stock, a number). Then return aggregate totals (0 if absent): " +
+  "short_collateral (融券擔保品市值), short_amount (融券總額/融券保證金), " +
+  "pledge (抵繳保證品市值/抵繳金額). All numbers must be plain numbers with no commas " +
+  "or units. Skip total/subtotal rows in 'positions' (they go into the aggregates).";
 
 const MARGIN_SCHEMA = {
   type: "object",
   properties: {
-    fin_collateral: { type: "number" },
-    fin_loan: { type: "number" },
+    positions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          loan: { type: "number" },
+          value: { type: "number" },
+        },
+        required: ["name", "loan", "value"],
+        additionalProperties: false,
+      },
+    },
     short_collateral: { type: "number" },
     short_amount: { type: "number" },
     pledge: { type: "number" },
   },
-  required: ["fin_collateral", "fin_loan", "short_collateral", "short_amount", "pledge"],
+  required: ["positions", "short_collateral", "short_amount", "pledge"],
   additionalProperties: false,
 };
 
