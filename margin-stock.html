@@ -23,15 +23,28 @@ h1{font-size:20px;margin:4px 0 2px;text-align:center}
 .field{margin-bottom:12px}
 .field>label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
 .field .hint{font-size:11px;color:#6b7892;margin-top:4px}
-input[type=number],input[type=text]{width:100%;padding:11px 12px;border-radius:10px;
+input[type=number],input[type=text],select{width:100%;padding:11px 12px;border-radius:10px;
   border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:16px;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-input:focus{outline:none;border-color:var(--accent)}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
 .row{display:flex;gap:10px}.row .field{flex:1}
-.addbtn{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;
-  background:var(--bg);color:var(--green);font-weight:700;font-size:14px;cursor:pointer;margin-top:8px}
-.res-row{display:flex;justify-content:space-between;align-items:baseline;
-  padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.abtn{width:100%;padding:11px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer}
+.abtn.del{color:var(--red)}
+.prow{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--bg)}
+.prow .pName{width:100%;padding:9px 10px;font-size:14px;margin-bottom:6px}
+.prow .top{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.prow .top input{padding:8px;font-size:14px}
+.prow .bot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.prow .bot .pl{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.prow .bot .pl .lab{color:var(--muted);font-weight:400;margin-right:6px}
+.pDel{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer}
+.collab{font-size:11px;color:#6b7892;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 2px 4px}
+.addbtn{width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px;
+  background:transparent;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer;margin-top:2px}
+.subtotal{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:700}
+.subtotal .v{font-variant-numeric:tabular-nums}
+.res-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
 .res-row:last-child{border-bottom:0}
 .res-row .k{color:var(--muted);font-size:14px}
 .res-row .v{font-variant-numeric:tabular-nums;font-weight:700}
@@ -50,64 +63,69 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
 <div class="wrap">
   <a href="./index.html" style="color:#93a0b8;text-decoration:none;font-size:13px">← 首頁</a>
   <h1>股票融資 · 整戶維持率／追繳試算</h1>
-  <div class="sub">填數字算整戶維持率，及低於標準要補多少現金</div>
+  <div class="sub">逐股填融資金額與市值，自動算整戶維持率與要補多少現金</div>
 
-  <!-- 截圖自動辨識 -->
+  <!-- 帳戶 -->
   <div class="card">
-    <h2>📷 截圖自動辨識（選填）</h2>
-    <div class="field">
-      <input type="text" id="ocrUrl" placeholder="貼上你的 Worker 網址">
-      <div class="hint">與期貨頁共用同一個 Worker；設定方式見 worker/README。</div>
+    <h2>帳戶（每個人各自保存）</h2>
+    <div class="row">
+      <div class="field" style="flex:2;margin-bottom:0"><label>選擇帳戶</label>
+        <select id="acctSel"></select></div>
+      <div class="field" style="margin-bottom:0;align-self:end">
+        <button class="abtn" id="acctAdd">＋ 新增</button></div>
     </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field" style="flex:2;margin-bottom:0"><label>此帳戶名稱（可改成人名）</label>
+        <input type="text" id="acctName" placeholder="例：鄭○隆"></div>
+      <div class="field" style="margin-bottom:0;align-self:end">
+        <button class="abtn del" id="acctDel">刪除</button></div>
+    </div>
+    <div class="hint" style="margin-top:8px">資料自動存在這台裝置；切換帳戶看各自的部位。</div>
+  </div>
+
+  <!-- 融資逐股 -->
+  <div class="card">
+    <h2>融資部位（一檔一列）</h2>
+    <div class="collab"><span>融資金額</span><span>擔保品市值（市值）</span></div>
+    <div id="rows"></div>
+    <button class="addbtn" id="addRow">＋ 新增一檔</button>
+    <div class="subtotal"><span>融資總額合計</span><span class="v" id="rFinLoan">—</span></div>
+    <div class="subtotal" style="border-top:0;padding-top:0;margin-top:4px"><span>融資擔保品市值合計</span><span class="v" id="rFinCol">—</span></div>
+    <div class="subtotal" style="border-top:0;padding-top:0;margin-top:4px"><span>融資維持率</span><span class="v" id="rFinRatio">—</span></div>
+
+    <div class="field" style="margin:14px 0 0"><label>📷 截圖自動辨識（選填）</label>
+      <input type="text" id="ocrUrl" placeholder="貼上你的 Worker 網址（與期貨頁共用）"></div>
     <input type="file" id="ocrFile" accept="image/*" style="display:none">
-    <button class="addbtn" id="ocrBtn">📷 上傳擔保維持率截圖自動帶入</button>
+    <button class="addbtn" id="ocrBtn" style="border-style:solid;color:var(--green)">📷 上傳融資庫存截圖自動帶入</button>
     <div class="hint" id="ocrStatus" style="text-align:center"></div>
   </div>
 
-  <!-- 融資 -->
+  <!-- 融券 + 抵繳 -->
   <div class="card">
-    <h2>融資</h2>
-    <div class="row">
-      <div class="field"><label>融資擔保品市值</label>
-        <input type="number" id="finCol" placeholder="例：1300000" inputmode="decimal"></div>
-      <div class="field"><label>融資總額（借款）</label>
-        <input type="number" id="finLoan" placeholder="例：1000000" inputmode="decimal"></div>
-    </div>
-    <div class="res-row"><span class="k">融資維持率</span><span class="v" id="rFin">—</span></div>
-  </div>
-
-  <!-- 融券 -->
-  <div class="card">
-    <h2>融券（沒有就留空）</h2>
+    <h2>融券／抵繳（沒有就留空）</h2>
     <div class="row">
       <div class="field"><label>融券擔保品市值</label>
         <input type="number" id="shortCol" placeholder="0" inputmode="decimal"></div>
       <div class="field"><label>融券總額</label>
         <input type="number" id="shortAmt" placeholder="0" inputmode="decimal"></div>
     </div>
-    <div class="res-row"><span class="k">融券維持率</span><span class="v" id="rShort">—</span></div>
-  </div>
-
-  <!-- 整戶 -->
-  <div class="card">
-    <h2>整戶（含抵繳保證品）</h2>
-    <div class="field"><label>抵繳保證品市值（沒有就留空）</label>
+    <div class="field" style="margin-bottom:0"><label>抵繳保證品市值</label>
       <input type="number" id="pledge" placeholder="0" inputmode="decimal"></div>
-    <div class="res-row"><span class="k">整戶擔保品總市值</span><span class="v" id="rTotCol">—</span></div>
-    <div class="res-row"><span class="k">整戶融資融券總額</span><span class="v" id="rTotLoan">—</span></div>
-    <div class="res-row"><span class="k">整戶維持率</span><span class="v" id="rTotRatio">—</span></div>
   </div>
 
-  <!-- 追繳／補錢 -->
+  <!-- 整戶 + 追繳 -->
   <div class="card">
-    <h2>追繳／補錢</h2>
+    <h2>整戶維持率／追繳</h2>
     <div class="row">
       <div class="field"><label>目標維持率 %</label>
         <input type="number" id="target" value="130" min="0" step="1" inputmode="decimal">
         <div class="hint">追繳線一般 130%</div></div>
-      <div class="field"><label>補入金額（試算用，選填）</label>
+      <div class="field"><label>補入金額（試算，選填）</label>
         <input type="number" id="addCash" placeholder="0" inputmode="decimal"></div>
     </div>
+    <div class="res-row"><span class="k">整戶擔保品總市值</span><span class="v" id="rTotCol">—</span></div>
+    <div class="res-row"><span class="k">整戶融資融券總額</span><span class="v" id="rTotLoan">—</span></div>
+    <div class="res-row"><span class="k">整戶維持率</span><span class="v" id="rTotRatio">—</span></div>
     <div class="res-row"><span class="k">補後整戶維持率</span><span class="v" id="rAfter">—</span></div>
 
     <div class="status safe" id="status">
@@ -120,11 +138,10 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <details>
     <summary>計算方式說明</summary>
     <p>
-      融資維持率＝融資擔保品市值 ÷ 融資總額；融券維持率＝融券擔保品市值 ÷ 融券總額。<br>
-      整戶擔保品總市值＝融資擔保 ＋ 融券擔保 ＋ 抵繳保證品。<br>
-      整戶維持率＝整戶擔保品總市值 ÷（融資總額＋融券總額）。<br>
-      需補現金＝MAX(整戶總額 × 目標維持率 − 整戶擔保品總市值, 0)。<br>
-      補後整戶維持率＝(整戶擔保 ＋ 補入金額) ÷ 整戶總額。數字以你的券商為準。
+      每檔維持率＝市值 ÷ 融資金額；融資維持率＝市值合計 ÷ 融資金額合計。<br>
+      整戶擔保品總市值＝融資市值合計 ＋ 融券擔保 ＋ 抵繳保證品。<br>
+      整戶維持率＝整戶擔保 ÷（融資總額＋融券總額）。<br>
+      需補現金＝MAX(整戶總額 × 目標維持率 − 整戶擔保, 0)。數字以你的券商為準。
     </p>
   </details>
   <div class="foot">本工具僅供試算參考，非投資建議。</div>
@@ -132,85 +149,156 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
 
 <script>
 const $=id=>document.getElementById(id);
-const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?null:v;};
+const num=el=>{const v=parseFloat(typeof el==='string'?$(el).value:el.value);return isNaN(v)?null:v;};
 const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
 const pct=r=>(r*100).toFixed(1)+' %';
-const IDS=['finCol','finLoan','shortCol','shortAmt','pledge','target','addCash'];
-const LS='marginStock_v1';
+const AGG=['shortCol','shortAmt','pledge','target','addCash'];
+
+// ---- 逐股列 ----
+function rowTemplate(){
+  const d=document.createElement('div'); d.className='prow';
+  d.innerHTML='<input class="pName" type="text" placeholder="股票名稱，例：台積電">'
+   +'<div class="top">'
+   +'<input class="pLoan" type="number" placeholder="融資金額" inputmode="decimal">'
+   +'<input class="pVal" type="number" placeholder="市值" inputmode="decimal"></div>'
+   +'<div class="bot"><span class="pl"><span class="lab">維持率</span><span class="plv">—</span></span>'
+   +'<button class="pDel">刪除</button></div>';
+  return d;
+}
+function addRow(){ $('rows').appendChild(rowTemplate()); }
+$('addRow').addEventListener('click',()=>{addRow();calc();save();});
+$('rows').addEventListener('click',e=>{
+  if(e.target.classList.contains('pDel')){
+    if($('rows').children.length>1) e.target.closest('.prow').remove();
+    calc();save();
+  }
+});
+$('rows').addEventListener('input',()=>{calc();save();});
+
+function finTotals(){
+  let loan=0,col=0,any=false;
+  $('rows').querySelectorAll('.prow').forEach(r=>{
+    const l=num(r.querySelector('.pLoan')), v=num(r.querySelector('.pVal'));
+    const cell=r.querySelector('.plv');
+    if(l!=null&&v!=null&&l>0){ cell.textContent=pct(v/l); cell.className='plv '+(v/l<1.3?'neg':'pos'); }
+    else{ cell.textContent='—'; cell.className='plv'; }
+    if(l!=null){loan+=l;any=true;} if(v!=null){col+=v;any=true;}
+  });
+  return any?{loan,col}:null;
+}
 
 function calc(){
-  const fc=num('finCol'),fl=num('finLoan'),sc=num('shortCol'),sa=num('shortAmt'),pl=num('pledge'),add=num('addCash');
+  const ft=finTotals();
+  const finLoan=ft?ft.loan:null, finCol=ft?ft.col:null;
+  $('rFinLoan').textContent=finLoan!=null?fmtNT(finLoan):'—';
+  $('rFinCol').textContent=finCol!=null?fmtNT(finCol):'—';
+  $('rFinRatio').textContent=(finCol!=null&&finLoan)?pct(finCol/finLoan):'—';
+  const sc=num('shortCol'),sa=num('shortAmt'),pl=num('pledge'),add=num('addCash');
   const tgt=(num('target')!=null)?num('target')/100:1.3;
-  // 個別維持率
-  $('rFin').textContent=(fc!=null&&fl)?pct(fc/fl):'—';
-  $('rShort').textContent=(sc!=null&&sa)?pct(sc/sa):'—';
-  // 整戶
-  const anyCol=(fc!=null||sc!=null||pl!=null);
-  const anyLoan=(fl!=null||sa!=null);
-  const totCol=anyCol?((fc||0)+(sc||0)+(pl||0)):null;
-  const totLoan=anyLoan?((fl||0)+(sa||0)):null;
+  const anyCol=(finCol!=null||sc!=null||pl!=null), anyLoan=(finLoan!=null||sa!=null);
+  const totCol=anyCol?((finCol||0)+(sc||0)+(pl||0)):null;
+  const totLoan=anyLoan?((finLoan||0)+(sa||0)):null;
   $('rTotCol').textContent=totCol!=null?fmtNT(totCol):'—';
   $('rTotLoan').textContent=totLoan!=null?fmtNT(totLoan):'—';
   const totRatio=(totCol!=null&&totLoan)?totCol/totLoan:null;
-  if(totRatio!=null){$('rTotRatio').textContent=pct(totRatio);
-    $('rTotRatio').className='v '+(totRatio<tgt?'neg':'pos');}
+  if(totRatio!=null){$('rTotRatio').textContent=pct(totRatio);$('rTotRatio').className='v '+(totRatio<tgt?'neg':'pos');}
   else{$('rTotRatio').textContent='—';$('rTotRatio').className='v';}
-  // 補後維持率
   const after=(totCol!=null&&totLoan)?(totCol+(add||0))/totLoan:null;
   $('rAfter').textContent=after!=null?pct(after):'—';
-  // 需補現金 + 狀態
   const st=$('status'),tag=$('stTag'),big=$('stBig'),note=$('stNote');
-  if(totCol==null||!totLoan){st.className='status safe';tag.textContent='請輸入資料';big.textContent='—';note.textContent='';}
-  else{
-    const need=Math.max(totLoan*tgt-totCol,0);
-    if(totRatio<tgt){
-      st.className='status call';tag.textContent='⚠ 低於目標維持率，需補現金';
-      big.textContent=fmtNT(need);
-      note.textContent='補 '+fmtNT(need)+' 後，整戶維持率回到 '+(tgt*100).toFixed(0)+'%';
-    }else{
-      st.className='status safe';tag.textContent='✓ 維持率達標，免追繳';
-      big.textContent='NT$ 0';
-      note.textContent='整戶維持率 '+pct(totRatio)+'，已達目標 '+(tgt*100).toFixed(0)+'%';
-    }
+  if(totCol==null||!totLoan){st.className='status safe';tag.textContent='請輸入資料';big.textContent='—';note.textContent='';return;}
+  const need=Math.max(totLoan*tgt-totCol,0);
+  if(totRatio<tgt){
+    st.className='status call';tag.textContent='⚠ 低於目標維持率，需補現金';
+    big.textContent=fmtNT(need);
+    note.textContent='補 '+fmtNT(need)+' 後，整戶維持率回到 '+(tgt*100).toFixed(0)+'%';
+  }else{
+    st.className='status safe';tag.textContent='✓ 維持率達標，免追繳';
+    big.textContent='NT$ 0';
+    note.textContent='整戶維持率 '+pct(totRatio)+'，已達目標 '+(tgt*100).toFixed(0)+'%';
   }
-  try{localStorage.setItem(LS,JSON.stringify(IDS.reduce((o,id)=>(o[id]=$(id).value,o),{})));}catch(e){}
 }
 
-// 還原本機保存
-try{const d=JSON.parse(localStorage.getItem(LS))||{};IDS.forEach(id=>{if(d[id]!=null&&d[id]!=='')$(id).value=d[id];});}catch(e){}
-IDS.forEach(id=>$(id).addEventListener('input',calc));
+// ---- 帳戶 + 本機保存 ----
+const LS='marginStock_accts_v1';
+let store=null;
+function snapshot(){
+  const inputs={}; AGG.forEach(id=>inputs[id]=$(id).value);
+  const rows=[...$('rows').querySelectorAll('.prow')].map(r=>({
+    name:r.querySelector('.pName').value, loan:r.querySelector('.pLoan').value, val:r.querySelector('.pVal').value }));
+  return {inputs,rows};
+}
+function persist(){ try{localStorage.setItem(LS,JSON.stringify(store));}catch(e){} }
+function save(){ if(!store)return; store.accounts[store.current].data=snapshot(); persist(); }
+function applyData(d){
+  d=d||{};
+  $('rows').innerHTML='';
+  const rows=(d.rows&&d.rows.length)?d.rows:[{},{},{}];
+  rows.forEach(rd=>{const el=rowTemplate();$('rows').appendChild(el);
+    el.querySelector('.pName').value=rd.name||''; el.querySelector('.pLoan').value=rd.loan||''; el.querySelector('.pVal').value=rd.val||'';});
+  const inp=d.inputs||{};
+  AGG.forEach(id=>$(id).value=(inp[id]!=null?inp[id]:$(id).defaultValue));
+  calc();
+}
+function renderAcctSel(){
+  const sel=$('acctSel');sel.innerHTML='';
+  store.accounts.forEach((a,i)=>{const o=document.createElement('option');o.value=i;o.textContent=a.name||('帳戶'+(i+1));sel.appendChild(o);});
+  sel.value=store.current; $('acctName').value=store.accounts[store.current].name||'';
+}
+function switchAcct(i){ save(); store.current=i; persist(); applyData(store.accounts[i].data); renderAcctSel(); }
+$('acctSel').addEventListener('change',e=>switchAcct(+e.target.value));
+$('acctName').addEventListener('input',e=>{const i=store.current;store.accounts[i].name=e.target.value;
+  $('acctSel').options[i].textContent=e.target.value||('帳戶'+(i+1));persist();});
+$('acctAdd').addEventListener('click',()=>{save();store.accounts.push({name:'帳戶'+(store.accounts.length+1),data:null});
+  store.current=store.accounts.length-1;persist();applyData(null);renderAcctSel();});
+$('acctDel').addEventListener('click',()=>{
+  if(!confirm('確定刪除「'+(store.accounts[store.current].name||'此帳戶')+'」的所有資料？'))return;
+  if(store.accounts.length<=1){store.accounts=[{name:'帳戶1',data:null}];store.current=0;}
+  else{store.accounts.splice(store.current,1);store.current=Math.min(store.current,store.accounts.length-1);}
+  persist();applyData(store.accounts[store.current].data);renderAcctSel();});
 
-// 截圖辨識（共用期貨頁的 Worker 網址）
+AGG.forEach(id=>$(id).addEventListener('input',()=>{calc();save();}));
+
+// ---- 截圖辨識（共用期貨頁 Worker 網址）----
 const OCR_URL_KEY='marginCalc_ocrUrl';
 $('ocrUrl').value=localStorage.getItem(OCR_URL_KEY)||'';
 $('ocrUrl').addEventListener('input',()=>localStorage.setItem(OCR_URL_KEY,$('ocrUrl').value.trim()));
-$('ocrBtn').addEventListener('click',()=>{
-  if(!$('ocrUrl').value.trim()){$('ocrStatus').textContent='請先貼上辨識服務（Worker）網址';return;}
-  $('ocrFile').click();
-});
+$('ocrBtn').addEventListener('click',()=>{ if(!$('ocrUrl').value.trim()){$('ocrStatus').textContent='請先貼上辨識服務（Worker）網址';return;} $('ocrFile').click(); });
 $('ocrFile').addEventListener('change',async e=>{
-  const f=e.target.files[0],url=$('ocrUrl').value.trim();
-  if(!f||!url){e.target.value='';return;}
+  const f=e.target.files[0],url=$('ocrUrl').value.trim(); if(!f||!url){e.target.value='';return;}
   $('ocrStatus').textContent='辨識中…請稍候（約數秒）';
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
-    const resp=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({kind:'margin',image:b64,media_type:f.type||'image/png'})});
+    const resp=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'margin',image:b64,media_type:f.type||'image/png'})});
     const data=await resp.json();
     if(data.error){$('ocrStatus').textContent='辨識失敗：'+data.error+'（可改用手動）';return;}
-    const map={finCol:'fin_collateral',finLoan:'fin_loan',shortCol:'short_collateral',shortAmt:'short_amount',pledge:'pledge'};
-    let n=0;
-    for(const k in map){ if(data[map[k]]!=null){ $(k).value=data[map[k]]; n++; } }
-    calc();
-    $('ocrStatus').textContent=n?('已帶入 '+n+' 個欄位 ✓ 請務必核對金額'):'沒有辨識到欄位，請改用手動輸入';
+    const arr=Array.isArray(data.positions)?data.positions:[];
+    if(arr.length){
+      $('rows').innerHTML='';
+      arr.forEach(p=>{const el=rowTemplate();$('rows').appendChild(el);
+        el.querySelector('.pName').value=p.name||''; el.querySelector('.pLoan').value=(p.loan??''); el.querySelector('.pVal').value=(p.value??'');});
+    }
+    if(data.short_collateral!=null)$('shortCol').value=data.short_collateral||'';
+    if(data.short_amount!=null)$('shortAmt').value=data.short_amount||'';
+    if(data.pledge!=null)$('pledge').value=data.pledge||'';
+    if(!$('rows').children.length) addRow();
+    calc();save();
+    $('ocrStatus').textContent='已帶入 '+arr.length+' 檔 ✓ 請務必核對融資金額與市值';
   }catch(err){$('ocrStatus').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）';}
   finally{e.target.value='';}
 });
 
-// 防止捲動改到數字
+// ---- 啟動 ----
+(function(){
+  try{store=JSON.parse(localStorage.getItem(LS));}catch(e){}
+  if(!store||!Array.isArray(store.accounts)||!store.accounts.length)
+    store={current:0,accounts:[{name:'帳戶1',data:null},{name:'帳戶2',data:null},{name:'帳戶3',data:null}]};
+  if(store.current>=store.accounts.length)store.current=0;
+  renderAcctSel(); applyData(store.accounts[store.current].data);
+})();
+
 document.addEventListener('wheel',e=>{const el=document.activeElement;
   if(el&&el.tagName==='INPUT'&&el.type==='number')el.blur();},{passive:true});
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-calc();
 </script>
 </body></html>
