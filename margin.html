@@ -184,11 +184,15 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
       <h2>保證金（金額模式）</h2>
       <div class="row">
         <div class="field"><label>每口原始保證金</label>
-          <input type="number" id="imAmt" placeholder="交易所公告" min="0" step="1" inputmode="decimal"></div>
-        <div class="field"><label>維持率</label>
-          <input type="number" id="mmRatio" value="0.75" min="0" max="1" step="0.01" inputmode="decimal">
-          <div class="hint">維持保證金＝原始×此值</div></div>
+          <input type="number" id="imAmt" placeholder="留空＝自動算一口" min="0" step="1" inputmode="decimal">
+          <div class="hint" id="autoIM">　</div></div>
+        <div class="field"><label>保證金比率 %</label>
+          <input type="number" id="imRate" value="13.5" min="0" step="0.01" inputmode="decimal">
+          <div class="hint">第1級13.5／第2級16.2／第3級20.7</div></div>
       </div>
+      <div class="field" style="margin-bottom:0"><label>維持率</label>
+        <input type="number" id="mmRatio" value="0.75" min="0" max="1" step="0.01" inputmode="decimal">
+        <div class="hint">維持保證金＝原始×此值。每口原始保證金留空時，會用「進場價 × 每口股數 × 保證金比率」自動估算一口。</div></div>
     </div>
     <div class="card hidden" id="cardRate">
       <h2>保證金（比率模式）</h2>
@@ -385,8 +389,12 @@ function calc(){
     const lots=num('lots'),mult=num('mult'),entry=num('entry'),now=num('now');
     let im=null,mm=null;
     if(sub==='amount'){
-      const a=num('imAmt'),r=num('mmRatio');
-      if(a!=null&&lots!=null){im=a*lots;if(r!=null)mm=im*r;}
+      let perLot=num('imAmt'); const rate=num('imRate'), r=num('mmRatio');
+      // 每口原始保證金留空或填 0 → 用「進場價 × 每口股數 × 保證金比率%」自動估算一口
+      if((perLot==null||perLot===0)&&entry!=null&&mult!=null&&rate!=null)
+        perLot=entry*mult*rate/100;
+      $('autoIM').textContent = perLot!=null ? '自動估算一口 ≈ '+fmtNT(perLot) : '　';
+      if(perLot!=null&&lots!=null){im=perLot*lots; if(r!=null)mm=im*r;}
     }else{
       const ip=num('imPct'),mp=num('mmPct');
       if(entry!=null&&mult!=null&&lots!=null){
