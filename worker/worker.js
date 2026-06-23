@@ -69,6 +69,24 @@ const MARGIN_SCHEMA = {
   additionalProperties: false,
 };
 
+// 期貨對帳單／權益數查詢畫面
+const STMT_PROMPT =
+  "You are extracting a Taiwan futures account summary / 權益數查詢 / 對帳單 screen. " +
+  "Return these aggregate numbers (use 0 if a value is absent): " +
+  "equity (權益數), initial_margin (原始保證金), maintenance_margin (維持保證金). " +
+  "All numbers must be plain numbers with no commas or units.";
+
+const STMT_SCHEMA = {
+  type: "object",
+  properties: {
+    equity: { type: "number" },
+    initial_margin: { type: "number" },
+    maintenance_margin: { type: "number" },
+  },
+  required: ["equity", "initial_margin", "maintenance_margin"],
+  additionalProperties: false,
+};
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -84,9 +102,9 @@ export default {
       const { image, media_type, kind } = await request.json();
       if (!image)
         return json({ error: "missing image" }, 400, cors);
-      const isMargin = kind === "margin";
-      const prompt = isMargin ? MARGIN_PROMPT : PROMPT;
-      const schema = isMargin ? MARGIN_SCHEMA : SCHEMA;
+      let prompt = PROMPT, schema = SCHEMA;
+      if (kind === "margin") { prompt = MARGIN_PROMPT; schema = MARGIN_SCHEMA; }
+      else if (kind === "statement") { prompt = STMT_PROMPT; schema = STMT_SCHEMA; }
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
