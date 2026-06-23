@@ -96,7 +96,7 @@ export default {
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
     if (request.method !== "POST")
-      return new Response("POST only", { status: 405, headers: cors });
+      return json({ ok: true, version: 3, kinds: ["futures", "margin", "statement"] }, 200, cors);
 
     try {
       const { image, media_type, kind } = await request.json();
