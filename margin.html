@@ -11,38 +11,54 @@
 body{margin:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
   padding:18px 14px 60px;line-height:1.5}
-.wrap{max-width:520px;margin:0 auto}
+.wrap{max-width:540px;margin:0 auto}
 h1{font-size:20px;margin:4px 0 2px;text-align:center}
 .sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
   padding:18px 16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .card h2{font-size:14px;margin:0 0 12px;color:var(--muted);font-weight:700;
-  letter-spacing:.5px;text-transform:uppercase}
+  letter-spacing:.5px}
 .seg{display:flex;gap:6px;background:var(--bg);border:1px solid var(--line);
-  border-radius:10px;padding:4px;margin-bottom:14px}
-.seg button{flex:1;padding:9px;border:0;border-radius:7px;background:transparent;
+  border-radius:10px;padding:4px;margin-bottom:6px}
+.seg button{flex:1;padding:9px 4px;border:0;border-radius:7px;background:transparent;
   color:var(--muted);font-size:14px;font-weight:700;cursor:pointer}
 .seg button.on{background:var(--accent);color:#04122e}
 .seg.dir button.on{background:var(--green);color:#04150c}
 .seg.dir.short button.on{background:var(--red);color:#fff}
 .field{margin-bottom:12px}
-.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.field>label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
 .field .hint{font-size:11px;color:#6b7892;margin-top:4px}
-input[type=number]{width:100%;padding:11px 12px;border-radius:10px;
+input[type=number],select{width:100%;padding:11px 12px;border-radius:10px;
   border:1px solid var(--line);background:var(--bg);color:var(--txt);
   font-size:16px;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{
   -webkit-appearance:none;margin:0}
-input:focus{outline:none;border-color:var(--accent)}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
 .row{display:flex;gap:10px}.row .field{flex:1}
 .hidden{display:none}
+/* 多檔部位列 */
+.prow{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--bg)}
+.prow .top{display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:6px}
+.prow .top input,.prow .top select{padding:8px 8px;font-size:14px}
+.prow .bot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.prow .bot .pl{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.prow .bot .pl .lab{color:var(--muted);font-weight:400;margin-right:6px}
+.pDel{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer}
+.collab{font-size:11px;color:#6b7892;display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:6px;margin-bottom:4px;padding:0 2px}
+.addbtn{width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px;
+  background:transparent;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer;margin-top:2px}
+.subtotal{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--line);font-weight:700}
+.subtotal .v{font-variant-numeric:tabular-nums}
+/* 結果 */
 .res-row{display:flex;justify-content:space-between;align-items:baseline;
   padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
 .res-row:last-child{border-bottom:0}
 .res-row .k{color:var(--muted);font-size:14px}
 .res-row .v{font-variant-numeric:tabular-nums;font-weight:700}
 .v.pos{color:var(--green)}.v.neg{color:var(--red)}
-.status{text-align:center;border-radius:12px;padding:16px;margin-top:4px}
+.status{text-align:center;border-radius:12px;padding:16px;margin-top:14px}
 .status.safe{background:rgba(31,191,117,.12);border:1px solid rgba(31,191,117,.4)}
 .status.call{background:rgba(255,77,87,.12);border:1px solid rgba(255,77,87,.45)}
 .status .tag{font-size:14px;font-weight:800;margin-bottom:6px}
@@ -57,95 +73,140 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <h1>股票期貨 · 追繳保證金試算</h1>
   <div class="sub">填入數字，自動算出「我要補多少錢」</div>
 
-  <!-- 方向 + 模式 -->
+  <!-- 模式選擇 -->
   <div class="card">
-    <h2>條件設定</h2>
-    <label style="font-size:13px;color:var(--muted)">交易方向</label>
-    <div class="seg dir" id="segDir">
-      <button data-dir="long" class="on">買進（做多）</button>
-      <button data-dir="short">賣出（做空）</button>
-    </div>
-    <label style="font-size:13px;color:var(--muted)">保證金輸入方式</label>
+    <h2>試算模式</h2>
     <div class="seg" id="segMode">
-      <button data-mode="amount" class="on">直接填金額</button>
-      <button data-mode="rate">用比率 %</button>
+      <button data-mode="statement" class="on">對帳單</button>
+      <button data-mode="positions">多檔部位</button>
+      <button data-mode="single">單筆試算</button>
+    </div>
+    <div class="hint" id="modeHint" style="font-size:12px;color:#6b7892;margin-top:6px"></div>
+  </div>
+
+  <!-- ============ 對帳單模式 ============ -->
+  <div id="paneStatement">
+    <div class="card">
+      <h2>照抄對帳單三個數字</h2>
+      <div class="field">
+        <label>權益數</label>
+        <input type="number" id="stEq" placeholder="例：8829947" inputmode="decimal">
+        <div class="hint">＝本日餘額 ＋ 未沖銷期貨浮動損益</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>原始保證金</label>
+          <input type="number" id="stIM" placeholder="例：9691731" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>維持保證金</label>
+          <input type="number" id="stMM" placeholder="例：7430360" inputmode="decimal">
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 部位 -->
-  <div class="card">
-    <h2>部位資料</h2>
-    <div class="row">
-      <div class="field">
-        <label>口數</label>
-        <input type="number" id="lots" value="1" min="0" step="1" inputmode="decimal">
-      </div>
-      <div class="field">
+  <!-- ============ 多檔部位模式 ============ -->
+  <div id="panePositions" class="hidden">
+    <div class="card">
+      <h2>未平倉部位（一檔一列）</h2>
+      <div class="field" style="margin-bottom:10px">
         <label>每口股數</label>
-        <input type="number" id="multiplier" value="2000" min="1" step="1" inputmode="decimal">
+        <input type="number" id="posMult" value="2000" min="1" step="1" inputmode="decimal">
         <div class="hint">股票期貨一口＝2000 股</div>
       </div>
+      <div class="collab"><span>買賣別</span><span>口數</span><span>成交均價</span><span>市價</span></div>
+      <div id="rows"></div>
+      <button class="addbtn" id="addRow">＋ 新增一檔</button>
+      <div class="subtotal"><span>未沖銷浮動損益合計</span><span class="v" id="posTotal">—</span></div>
     </div>
-    <div class="row">
+    <div class="card">
+      <h2>帶入帳戶資料（算追繳／補錢）</h2>
       <div class="field">
-        <label>進場價（成交價）</label>
-        <input type="number" id="entry" placeholder="例：100" min="0" step="0.01" inputmode="decimal">
+        <label>本日餘額（不含浮動損益）</label>
+        <input type="number" id="posBal" placeholder="例：8228947" inputmode="decimal">
+        <div class="hint">權益數＝本日餘額 ＋ 上方浮動損益合計</div>
       </div>
-      <div class="field">
-        <label>目前價（現價／結算價）</label>
-        <input type="number" id="now" placeholder="例：92" min="0" step="0.01" inputmode="decimal">
-      </div>
-    </div>
-    <div class="field">
-      <label>帳戶已存入保證金（權益本金）</label>
-      <input type="number" id="deposit" placeholder="留空＝以原始保證金計" min="0" step="1" inputmode="decimal">
-      <div class="hint">留空時，預設你一開始存入的金額剛好等於原始保證金。</div>
-    </div>
-  </div>
-
-  <!-- 保證金：金額模式 -->
-  <div class="card" id="cardAmount">
-    <h2>保證金（金額模式）</h2>
-    <div class="row">
-      <div class="field">
-        <label>每口原始保證金</label>
-        <input type="number" id="imAmt" placeholder="交易所公告，例：27000" min="0" step="1" inputmode="decimal">
-      </div>
-      <div class="field">
-        <label>維持率</label>
-        <input type="number" id="mmRatio" value="0.75" min="0" max="1" step="0.01" inputmode="decimal">
-        <div class="hint">維持保證金＝原始×此值（一般 0.75）</div>
+      <div class="row">
+        <div class="field">
+          <label>原始保證金</label>
+          <input type="number" id="posIM" placeholder="例：9691731" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>維持保證金</label>
+          <input type="number" id="posMM" placeholder="例：7430360" inputmode="decimal">
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 保證金：比率模式 -->
-  <div class="card hidden" id="cardRate">
-    <h2>保證金（比率模式）</h2>
-    <div class="row">
-      <div class="field">
-        <label>原始保證金比率 %</label>
-        <input type="number" id="imPct" placeholder="例：13.5" min="0" step="0.01" inputmode="decimal">
+  <!-- ============ 單筆試算模式 ============ -->
+  <div id="paneSingle" class="hidden">
+    <div class="card">
+      <h2>條件設定</h2>
+      <label style="font-size:13px;color:var(--muted)">交易方向</label>
+      <div class="seg dir" id="segDir">
+        <button data-dir="long" class="on">買進（做多）</button>
+        <button data-dir="short">賣出（做空）</button>
       </div>
-      <div class="field">
-        <label>維持保證金比率 %</label>
-        <input type="number" id="mmPct" placeholder="例：10.35" min="0" step="0.01" inputmode="decimal">
+      <label style="font-size:13px;color:var(--muted)">保證金輸入方式</label>
+      <div class="seg" id="segSub">
+        <button data-sub="amount" class="on">直接填金額</button>
+        <button data-sub="rate">用比率 %</button>
       </div>
     </div>
-    <div class="hint">保證金＝進場價 × 每口股數 × 比率 × 口數</div>
+    <div class="card">
+      <h2>部位資料</h2>
+      <div class="row">
+        <div class="field"><label>口數</label>
+          <input type="number" id="lots" value="1" min="0" step="1" inputmode="decimal"></div>
+        <div class="field"><label>每口股數</label>
+          <input type="number" id="mult" value="2000" min="1" step="1" inputmode="decimal"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>進場價（成交價）</label>
+          <input type="number" id="entry" placeholder="例：178.25" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>目前價（市價／結算價）</label>
+          <input type="number" id="now" placeholder="例：170.50" min="0" step="0.01" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label>帳戶已存入保證金（權益本金）</label>
+        <input type="number" id="deposit" placeholder="留空＝以原始保證金計" min="0" step="1" inputmode="decimal">
+        <div class="hint">留空時，預設你一開始存入剛好等於原始保證金。</div></div>
+    </div>
+    <div class="card" id="cardAmount">
+      <h2>保證金（金額模式）</h2>
+      <div class="row">
+        <div class="field"><label>每口原始保證金</label>
+          <input type="number" id="imAmt" placeholder="交易所公告" min="0" step="1" inputmode="decimal"></div>
+        <div class="field"><label>維持率</label>
+          <input type="number" id="mmRatio" value="0.75" min="0" max="1" step="0.01" inputmode="decimal">
+          <div class="hint">維持保證金＝原始×此值</div></div>
+      </div>
+    </div>
+    <div class="card hidden" id="cardRate">
+      <h2>保證金（比率模式）</h2>
+      <div class="row">
+        <div class="field"><label>原始保證金比率 %</label>
+          <input type="number" id="imPct" placeholder="例：13.5" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>維持保證金比率 %</label>
+          <input type="number" id="mmPct" placeholder="例：10.35" min="0" step="0.01" inputmode="decimal"></div>
+      </div>
+      <div class="hint">保證金＝進場價 × 每口股數 × 比率 × 口數</div>
+    </div>
   </div>
 
-  <!-- 結果 -->
+  <!-- ============ 結果（共用） ============ -->
   <div class="card">
     <h2>試算結果</h2>
-    <div class="res-row"><span class="k">原始保證金（總）</span><span class="v" id="rIM">—</span></div>
-    <div class="res-row"><span class="k">維持保證金（總）</span><span class="v" id="rMM">—</span></div>
-    <div class="res-row"><span class="k">浮動損益</span><span class="v" id="rPL">—</span></div>
-    <div class="res-row"><span class="k">目前權益數</span><span class="v" id="rEq">—</span></div>
-    <div class="res-row"><span class="k">目前維持率（權益/原始）</span><span class="v" id="rRatio">—</span></div>
-    <div class="res-row"><span class="k">預估追繳價位</span><span class="v" id="rTrig">—</span></div>
+    <div class="res-row"><span class="k">原始保證金</span><span class="v" id="rIM">—</span></div>
+    <div class="res-row"><span class="k">維持保證金</span><span class="v" id="rMM">—</span></div>
+    <div class="res-row" id="rowPL"><span class="k">浮動損益</span><span class="v" id="rPL">—</span></div>
+    <div class="res-row"><span class="k">權益數</span><span class="v" id="rEq">—</span></div>
+    <div class="res-row"><span class="k">維持率（權益/原始）</span><span class="v" id="rRatio">—</span></div>
+    <div class="res-row"><span class="k">可動用（出金）保證金</span><span class="v" id="rWd">—</span></div>
+    <div class="res-row" id="rowTrig"><span class="k">預估追繳價位</span><span class="v" id="rTrig">—</span></div>
 
-    <div class="status safe" id="status" style="margin-top:14px">
+    <div class="status safe" id="status">
       <div class="tag" id="stTag">請輸入資料</div>
       <div class="big" id="stBig">—</div>
       <div class="note" id="stNote"></div>
@@ -155,10 +216,11 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <details>
     <summary>計算方式說明</summary>
     <p>
-      浮動損益＝(做多:現價−進場價／做空:進場價−現價) × 每口股數 × 口數。<br>
-      權益數＝已存入保證金 + 浮動損益。<br>
+      浮動損益＝(買進:市價−成交均價／賣出:成交均價−市價) × 每口股數 × 口數。<br>
+      權益數＝本日餘額（或已存入保證金） ＋ 浮動損益。<br>
+      可動用(出金)保證金＝權益數 − 原始保證金（負值代表不可出金）。<br>
       當「權益數 ＜ 維持保證金」即觸發追繳；補繳金額＝原始保證金 − 權益數（補回原始保證金水準）。<br>
-      比率模式的保證金以「進場價」為基準計算。實際數字請以你的期貨商與交易所公告為準。
+      數字以你的期貨商與交易所公告為準；券商的「風險指標」算法各家略有差異，本頁以追繳判斷為主。
     </p>
   </details>
   <div class="foot">本工具僅供試算參考，非投資建議。</div>
@@ -166,94 +228,155 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
 
 <script>
 const $=id=>document.getElementById(id);
-let dir='long', mode='amount';
+const num=el=>{const v=parseFloat(typeof el==='string'?$(el).value:el.value);return isNaN(v)?null:v;};
+const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
+const fmtPx=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
 
-// 方向切換
-$('segDir').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
-  dir=b.dataset.dir;
-  [...$('segDir').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('segDir').classList.toggle('short',dir==='short');
-  calc();
-});
+let mode='statement', dir='long', sub='amount';
+const HINTS={
+  statement:'直接照抄對帳單的「權益數、原始保證金、維持保證金」即可。',
+  positions:'一檔一列填入口數、成交均價、市價；再帶入本日餘額與保證金。',
+  single:'用單一部位的進場價/現價試算，含預估追繳價位。'
+};
+
 // 模式切換
 $('segMode').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b)return;
   mode=b.dataset.mode;
   [...$('segMode').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('cardAmount').classList.toggle('hidden',mode!=='amount');
-  $('cardRate').classList.toggle('hidden',mode!=='rate');
+  $('paneStatement').classList.toggle('hidden',mode!=='statement');
+  $('panePositions').classList.toggle('hidden',mode!=='positions');
+  $('paneSingle').classList.toggle('hidden',mode!=='single');
+  $('modeHint').textContent=HINTS[mode];
   calc();
 });
+$('segDir').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  dir=b.dataset.dir;
+  [...$('segDir').children].forEach(x=>x.classList.toggle('on',x===b));
+  $('segDir').classList.toggle('short',dir==='short'); calc();
+});
+$('segSub').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  sub=b.dataset.sub;
+  [...$('segSub').children].forEach(x=>x.classList.toggle('on',x===b));
+  $('cardAmount').classList.toggle('hidden',sub!=='amount');
+  $('cardRate').classList.toggle('hidden',sub!=='rate'); calc();
+});
 
-const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?null:v;};
-const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
-const fmtPx=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
-
-function calc(){
-  const lots=num('lots'), mult=num('multiplier');
-  const entry=num('entry'), now=num('now');
-  let im=null, mm=null; // 總額
-
-  if(mode==='amount'){
-    const imAmt=num('imAmt'), ratio=num('mmRatio');
-    if(imAmt!=null&&lots!=null){ im=imAmt*lots; if(ratio!=null) mm=im*ratio; }
-  }else{
-    const imPct=num('imPct'), mmPct=num('mmPct');
-    if(entry!=null&&mult!=null&&lots!=null){
-      const base=entry*mult*lots;
-      if(imPct!=null) im=base*imPct/100;
-      if(mmPct!=null) mm=base*mmPct/100;
-    }
+// 多檔部位列
+function rowTemplate(){
+  const d=document.createElement('div'); d.className='prow';
+  d.innerHTML=
+   '<div class="top">'
+   +'<select class="pBs"><option value="buy">買進</option><option value="sell">賣出</option></select>'
+   +'<input class="pLots" type="number" placeholder="口數" inputmode="decimal">'
+   +'<input class="pAvg" type="number" placeholder="均價" step="0.01" inputmode="decimal">'
+   +'<input class="pMkt" type="number" placeholder="市價" step="0.01" inputmode="decimal">'
+   +'</div>'
+   +'<div class="bot"><span class="pl"><span class="lab">未平倉損益</span><span class="plv">—</span></span>'
+   +'<button class="pDel">刪除</button></div>';
+  return d;
+}
+function addRow(){ $('rows').appendChild(rowTemplate()); }
+$('addRow').addEventListener('click',()=>{addRow();calc();});
+$('rows').addEventListener('click',e=>{
+  if(e.target.classList.contains('pDel')){
+    if($('rows').children.length>1) e.target.closest('.prow').remove();
+    calc();
   }
+});
+$('rows').addEventListener('input',calc);
+$('rows').addEventListener('change',calc);
+addRow();addRow();addRow();
 
-  // 浮動損益
-  let pl=null;
-  if(entry!=null&&now!=null&&mult!=null&&lots!=null){
-    pl=(dir==='long'?(now-entry):(entry-now))*mult*lots;
-  }
+function positionsTotal(){
+  const mult=num('posMult')||0; let total=0, any=false;
+  $('rows').querySelectorAll('.prow').forEach(r=>{
+    const bs=r.querySelector('.pBs').value;
+    const lots=num(r.querySelector('.pLots'));
+    const avg=num(r.querySelector('.pAvg'));
+    const mkt=num(r.querySelector('.pMkt'));
+    const cell=r.querySelector('.plv');
+    if(lots!=null&&avg!=null&&mkt!=null&&mult){
+      const pl=(bs==='buy'?(mkt-avg):(avg-mkt))*mult*lots;
+      total+=pl; any=true;
+      cell.textContent=fmtNT(pl);
+      cell.className='plv '+(pl>=0?'pos':'neg');
+    }else{ cell.textContent='—'; cell.className='plv'; }
+  });
+  return any?total:null;
+}
 
-  // 已存入保證金（留空→原始保證金）
-  let deposit=num('deposit'); if(deposit==null) deposit=im;
+function render(im,mm,eq,pl,trig){
+  $('rIM').textContent=im!=null?fmtNT(im):'—';
+  $('rMM').textContent=mm!=null?fmtNT(mm):'—';
+  if(pl!=null){$('rPL').textContent=fmtNT(pl);$('rPL').className='v '+(pl>=0?'pos':'neg');$('rowPL').style.display='';}
+  else{$('rPL').textContent='—';$('rPL').className='v';$('rowPL').style.display=(mode==='statement')?'none':'';}
+  $('rEq').textContent=eq!=null?fmtNT(eq):'—';
+  $('rRatio').textContent=(eq!=null&&im)?(eq/im*100).toFixed(1)+' %':'—';
+  // 可動用出金 = 權益 - 原始
+  if(eq!=null&&im!=null){const wd=eq-im;$('rWd').textContent=fmtNT(wd);$('rWd').className='v '+(wd>=0?'pos':'neg');}
+  else{$('rWd').textContent='—';$('rWd').className='v';}
+  // 追繳價位（僅單筆）
+  $('rowTrig').style.display=(mode==='single')?'':'none';
+  $('rTrig').textContent=(trig!=null&&trig>0)?fmtPx(trig):'—';
 
-  // 權益數
-  const eq=(deposit!=null&&pl!=null)?deposit+pl:null;
-
-  // 輸出基本欄位
-  $('rIM').textContent = im!=null?fmtNT(im):'—';
-  $('rMM').textContent = mm!=null?fmtNT(mm):'—';
-  if(pl!=null){ $('rPL').textContent=fmtNT(pl);
-    $('rPL').className='v '+(pl>=0?'pos':'neg'); }
-  else{ $('rPL').textContent='—'; $('rPL').className='v'; }
-  $('rEq').textContent = eq!=null?fmtNT(eq):'—';
-  $('rRatio').textContent = (eq!=null&&im)?( (eq/im*100).toFixed(1)+' %'):'—';
-
-  // 預估追繳價位：權益=維持保證金時的價格
-  if(mm!=null&&deposit!=null&&mult&&lots&&entry!=null){
-    const move=(mm-deposit)/(mult*lots);
-    const trig=dir==='long'?(entry+move):(entry-move);
-    $('rTrig').textContent = (trig>0?fmtPx(trig):'—');
-  }else $('rTrig').textContent='—';
-
-  // 狀態與補繳金額
-  const st=$('status'), tag=$('stTag'), big=$('stBig'), note=$('stNote');
+  const st=$('status'),tag=$('stTag'),big=$('stBig'),note=$('stNote');
   if(im==null||mm==null||eq==null){
-    st.className='status safe'; tag.textContent='請輸入資料';
-    big.textContent='—'; note.textContent=''; return;
+    st.className='status safe';tag.textContent='請輸入資料';big.textContent='—';note.textContent='';return;
   }
   if(eq<mm){
-    const add=im-eq;
-    st.className='status call'; tag.textContent='⚠ 低於維持保證金，需追繳';
-    big.textContent=fmtNT(add);
+    st.className='status call';tag.textContent='⚠ 低於維持保證金，需追繳';
+    big.textContent=fmtNT(im-eq);
     note.textContent='補繳後權益回到原始保證金 '+fmtNT(im);
   }else{
-    st.className='status safe'; tag.textContent='✓ 保證金充足，免追繳';
+    st.className='status safe';tag.textContent='✓ 保證金充足，免追繳';
     big.textContent='NT$ 0';
     note.textContent='距追繳尚有緩衝 '+fmtNT(eq-mm);
   }
 }
 
-document.querySelectorAll('input').forEach(el=>el.addEventListener('input',calc));
+function calc(){
+  if(mode==='statement'){
+    render(num('stIM'),num('stMM'),num('stEq'),null,null);
+  }else if(mode==='positions'){
+    const pl=positionsTotal();
+    $('posTotal').textContent=pl!=null?fmtNT(pl):'—';
+    $('posTotal').className='v '+(pl!=null&&pl<0?'neg':'pos');
+    const bal=num('posBal');
+    const eq=(bal!=null&&pl!=null)?bal+pl:null;
+    render(num('posIM'),num('posMM'),eq,pl,null);
+  }else{ // single
+    const lots=num('lots'),mult=num('mult'),entry=num('entry'),now=num('now');
+    let im=null,mm=null;
+    if(sub==='amount'){
+      const a=num('imAmt'),r=num('mmRatio');
+      if(a!=null&&lots!=null){im=a*lots;if(r!=null)mm=im*r;}
+    }else{
+      const ip=num('imPct'),mp=num('mmPct');
+      if(entry!=null&&mult!=null&&lots!=null){
+        const base=entry*mult*lots;
+        if(ip!=null)im=base*ip/100; if(mp!=null)mm=base*mp/100;
+      }
+    }
+    let pl=null;
+    if(entry!=null&&now!=null&&mult!=null&&lots!=null)
+      pl=(dir==='long'?(now-entry):(entry-now))*mult*lots;
+    let dep=num('deposit'); if(dep==null)dep=im;
+    const eq=(dep!=null&&pl!=null)?dep+pl:null;
+    let trig=null;
+    if(mm!=null&&dep!=null&&mult&&lots&&entry!=null){
+      const move=(mm-dep)/(mult*lots);
+      trig=dir==='long'?(entry+move):(entry-move);
+    }
+    render(im,mm,eq,pl,trig);
+  }
+}
+
+document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input')
+  .forEach(el=>el.addEventListener('input',calc));
+$('modeHint').textContent=HINTS[mode];
 calc();
 </script>
 </body></html>
