@@ -128,22 +128,27 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
       <div class="subtotal"><span>未沖銷浮動損益合計</span><span class="v" id="posTotal">—</span></div>
     </div>
     <div class="card">
-      <h2>帶入帳戶資料（算追繳／補錢）</h2>
+      <h2>帶入帳戶資料（算風險指標／追繳）</h2>
       <div class="field">
         <label>本日餘額（不含浮動損益）</label>
-        <input type="number" id="posBal" placeholder="例：8228947" inputmode="decimal">
-        <div class="hint">權益數＝本日餘額 ＋ 上方浮動損益合計</div>
+        <input type="number" id="posBal" placeholder="從對帳單抄，例：8228947" inputmode="decimal">
+        <div class="hint">權益數＝本日餘額 ＋ 上方浮動損益合計。沒有這個數字就無法算風險指標。</div>
       </div>
       <div class="row">
-        <div class="field">
-          <label>原始保證金</label>
-          <input type="number" id="posIM" placeholder="例：9691731" inputmode="decimal">
-        </div>
-        <div class="field">
-          <label>維持保證金</label>
-          <input type="number" id="posMM" placeholder="例：7430360" inputmode="decimal">
-        </div>
+        <div class="field"><label>保證金比率 %</label>
+          <input type="number" id="posRate" value="13.5" min="0" step="0.01" inputmode="decimal">
+          <div class="hint">估算用，第1級13.5</div></div>
+        <div class="field"><label>維持率</label>
+          <input type="number" id="posMmRatio" value="0.75" min="0" max="1" step="0.01" inputmode="decimal"></div>
       </div>
+      <div class="row">
+        <div class="field"><label>原始保證金</label>
+          <input type="number" id="posIM" placeholder="留空＝自動估算" inputmode="decimal">
+          <div class="hint" id="autoPosIM">　</div></div>
+        <div class="field"><label>維持保證金</label>
+          <input type="number" id="posMM" placeholder="留空＝自動估算" inputmode="decimal"></div>
+      </div>
+      <div class="hint">最準：直接抄對帳單的「原始／維持保證金」；留空則用「市價 × 股數 × 比率」由上方部位自動估算。</div>
     </div>
   </div>
 
@@ -332,6 +337,21 @@ function positionsTotal(){
   return any?total:null;
 }
 
+// 由部位自動估算保證金：市價(無則均價) × 股數 × 比率% × 口數
+function positionsMargin(){
+  const mult=num('posMult')||0, rate=num('posRate'), mmr=num('posMmRatio');
+  if(!mult||rate==null) return null;
+  let im=0, any=false;
+  $('rows').querySelectorAll('.prow').forEach(r=>{
+    const lots=num(r.querySelector('.pLots'));
+    const mkt=num(r.querySelector('.pMkt'));
+    const avg=num(r.querySelector('.pAvg'));
+    const px=(mkt!=null?mkt:avg);
+    if(lots!=null&&px!=null){ im+=px*mult*rate/100*lots; any=true; }
+  });
+  return any?{im, mm:(mmr!=null?im*mmr:null)}:null;
+}
+
 function render(im,mm,eq,pl,trig){
   $('rIM').textContent=im!=null?fmtNT(im):'—';
   $('rMM').textContent=mm!=null?fmtNT(mm):'—';
@@ -384,7 +404,11 @@ function calc(){
     $('posTotal').className='v '+(pl!=null&&pl<0?'neg':'pos');
     const bal=num('posBal');
     const eq=(bal!=null&&pl!=null)?bal+pl:null;
-    render(num('posIM'),num('posMM'),eq,pl,null);
+    const auto=positionsMargin();
+    $('autoPosIM').textContent = auto ? '部位估算原始 ≈ '+fmtNT(auto.im) : '　';
+    let im=num('posIM'); if(im==null) im=auto?auto.im:null;
+    let mm=num('posMM'); if(mm==null) mm=auto?auto.mm:null;
+    render(im,mm,eq,pl,null);
   }else{ // single
     const lots=num('lots'),mult=num('mult'),entry=num('entry'),now=num('now');
     let im=null,mm=null;
