@@ -1,0 +1,216 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>股票融資 整戶維持率／追繳試算</title>
+<meta name="theme-color" content="#0b0f17">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="融資追繳">
+<style>
+:root{--bg:#0b0f17;--card:#141b29;--line:#27314a;--txt:#e8edf6;--muted:#93a0b8;
+  --green:#1fbf75;--red:#ff4d57;--accent:#4c8dff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  padding:18px 14px 60px;line-height:1.5}
+.wrap{max-width:540px;margin:0 auto}
+h1{font-size:20px;margin:4px 0 2px;text-align:center}
+.sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:18px 16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.card h2{font-size:14px;margin:0 0 12px;color:var(--muted);font-weight:700;letter-spacing:.5px}
+.field{margin-bottom:12px}
+.field>label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.field .hint{font-size:11px;color:#6b7892;margin-top:4px}
+input[type=number],input[type=text]{width:100%;padding:11px 12px;border-radius:10px;
+  border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:16px;-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;gap:10px}.row .field{flex:1}
+.addbtn{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--green);font-weight:700;font-size:14px;cursor:pointer;margin-top:8px}
+.res-row{display:flex;justify-content:space-between;align-items:baseline;
+  padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.res-row:last-child{border-bottom:0}
+.res-row .k{color:var(--muted);font-size:14px}
+.res-row .v{font-variant-numeric:tabular-nums;font-weight:700}
+.v.pos{color:var(--green)}.v.neg{color:var(--red)}
+.status{text-align:center;border-radius:12px;padding:16px;margin-top:14px}
+.status.safe{background:rgba(31,191,117,.12);border:1px solid rgba(31,191,117,.4)}
+.status.call{background:rgba(255,77,87,.12);border:1px solid rgba(255,77,87,.45)}
+.status .tag{font-size:14px;font-weight:800;margin-bottom:6px}
+.status.safe .tag{color:var(--green)}.status.call .tag{color:var(--red)}
+.status .big{font-size:34px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+.status .note{font-size:12px;color:var(--muted);margin-top:6px}
+.foot{font-size:11px;color:#6b7892;text-align:center;margin-top:10px}
+details{margin-top:8px}summary{font-size:12px;color:var(--muted);cursor:pointer}
+details p{font-size:12px;color:#8392ab;margin:8px 0 0}
+</style></head><body>
+<div class="wrap">
+  <a href="./index.html" style="color:#93a0b8;text-decoration:none;font-size:13px">← 首頁</a>
+  <h1>股票融資 · 整戶維持率／追繳試算</h1>
+  <div class="sub">填數字算整戶維持率，及低於標準要補多少現金</div>
+
+  <!-- 截圖自動辨識 -->
+  <div class="card">
+    <h2>📷 截圖自動辨識（選填）</h2>
+    <div class="field">
+      <input type="text" id="ocrUrl" placeholder="貼上你的 Worker 網址">
+      <div class="hint">與期貨頁共用同一個 Worker；設定方式見 worker/README。</div>
+    </div>
+    <input type="file" id="ocrFile" accept="image/*" style="display:none">
+    <button class="addbtn" id="ocrBtn">📷 上傳擔保維持率截圖自動帶入</button>
+    <div class="hint" id="ocrStatus" style="text-align:center"></div>
+  </div>
+
+  <!-- 融資 -->
+  <div class="card">
+    <h2>融資</h2>
+    <div class="row">
+      <div class="field"><label>融資擔保品市值</label>
+        <input type="number" id="finCol" placeholder="例：1300000" inputmode="decimal"></div>
+      <div class="field"><label>融資總額（借款）</label>
+        <input type="number" id="finLoan" placeholder="例：1000000" inputmode="decimal"></div>
+    </div>
+    <div class="res-row"><span class="k">融資維持率</span><span class="v" id="rFin">—</span></div>
+  </div>
+
+  <!-- 融券 -->
+  <div class="card">
+    <h2>融券（沒有就留空）</h2>
+    <div class="row">
+      <div class="field"><label>融券擔保品市值</label>
+        <input type="number" id="shortCol" placeholder="0" inputmode="decimal"></div>
+      <div class="field"><label>融券總額</label>
+        <input type="number" id="shortAmt" placeholder="0" inputmode="decimal"></div>
+    </div>
+    <div class="res-row"><span class="k">融券維持率</span><span class="v" id="rShort">—</span></div>
+  </div>
+
+  <!-- 整戶 -->
+  <div class="card">
+    <h2>整戶（含抵繳保證品）</h2>
+    <div class="field"><label>抵繳保證品市值（沒有就留空）</label>
+      <input type="number" id="pledge" placeholder="0" inputmode="decimal"></div>
+    <div class="res-row"><span class="k">整戶擔保品總市值</span><span class="v" id="rTotCol">—</span></div>
+    <div class="res-row"><span class="k">整戶融資融券總額</span><span class="v" id="rTotLoan">—</span></div>
+    <div class="res-row"><span class="k">整戶維持率</span><span class="v" id="rTotRatio">—</span></div>
+  </div>
+
+  <!-- 追繳／補錢 -->
+  <div class="card">
+    <h2>追繳／補錢</h2>
+    <div class="row">
+      <div class="field"><label>目標維持率 %</label>
+        <input type="number" id="target" value="130" min="0" step="1" inputmode="decimal">
+        <div class="hint">追繳線一般 130%</div></div>
+      <div class="field"><label>補入金額（試算用，選填）</label>
+        <input type="number" id="addCash" placeholder="0" inputmode="decimal"></div>
+    </div>
+    <div class="res-row"><span class="k">補後整戶維持率</span><span class="v" id="rAfter">—</span></div>
+
+    <div class="status safe" id="status">
+      <div class="tag" id="stTag">請輸入資料</div>
+      <div class="big" id="stBig">—</div>
+      <div class="note" id="stNote"></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>計算方式說明</summary>
+    <p>
+      融資維持率＝融資擔保品市值 ÷ 融資總額；融券維持率＝融券擔保品市值 ÷ 融券總額。<br>
+      整戶擔保品總市值＝融資擔保 ＋ 融券擔保 ＋ 抵繳保證品。<br>
+      整戶維持率＝整戶擔保品總市值 ÷（融資總額＋融券總額）。<br>
+      需補現金＝MAX(整戶總額 × 目標維持率 − 整戶擔保品總市值, 0)。<br>
+      補後整戶維持率＝(整戶擔保 ＋ 補入金額) ÷ 整戶總額。數字以你的券商為準。
+    </p>
+  </details>
+  <div class="foot">本工具僅供試算參考，非投資建議。</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?null:v;};
+const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
+const pct=r=>(r*100).toFixed(1)+' %';
+const IDS=['finCol','finLoan','shortCol','shortAmt','pledge','target','addCash'];
+const LS='marginStock_v1';
+
+function calc(){
+  const fc=num('finCol'),fl=num('finLoan'),sc=num('shortCol'),sa=num('shortAmt'),pl=num('pledge'),add=num('addCash');
+  const tgt=(num('target')!=null)?num('target')/100:1.3;
+  // 個別維持率
+  $('rFin').textContent=(fc!=null&&fl)?pct(fc/fl):'—';
+  $('rShort').textContent=(sc!=null&&sa)?pct(sc/sa):'—';
+  // 整戶
+  const anyCol=(fc!=null||sc!=null||pl!=null);
+  const anyLoan=(fl!=null||sa!=null);
+  const totCol=anyCol?((fc||0)+(sc||0)+(pl||0)):null;
+  const totLoan=anyLoan?((fl||0)+(sa||0)):null;
+  $('rTotCol').textContent=totCol!=null?fmtNT(totCol):'—';
+  $('rTotLoan').textContent=totLoan!=null?fmtNT(totLoan):'—';
+  const totRatio=(totCol!=null&&totLoan)?totCol/totLoan:null;
+  if(totRatio!=null){$('rTotRatio').textContent=pct(totRatio);
+    $('rTotRatio').className='v '+(totRatio<tgt?'neg':'pos');}
+  else{$('rTotRatio').textContent='—';$('rTotRatio').className='v';}
+  // 補後維持率
+  const after=(totCol!=null&&totLoan)?(totCol+(add||0))/totLoan:null;
+  $('rAfter').textContent=after!=null?pct(after):'—';
+  // 需補現金 + 狀態
+  const st=$('status'),tag=$('stTag'),big=$('stBig'),note=$('stNote');
+  if(totCol==null||!totLoan){st.className='status safe';tag.textContent='請輸入資料';big.textContent='—';note.textContent='';}
+  else{
+    const need=Math.max(totLoan*tgt-totCol,0);
+    if(totRatio<tgt){
+      st.className='status call';tag.textContent='⚠ 低於目標維持率，需補現金';
+      big.textContent=fmtNT(need);
+      note.textContent='補 '+fmtNT(need)+' 後，整戶維持率回到 '+(tgt*100).toFixed(0)+'%';
+    }else{
+      st.className='status safe';tag.textContent='✓ 維持率達標，免追繳';
+      big.textContent='NT$ 0';
+      note.textContent='整戶維持率 '+pct(totRatio)+'，已達目標 '+(tgt*100).toFixed(0)+'%';
+    }
+  }
+  try{localStorage.setItem(LS,JSON.stringify(IDS.reduce((o,id)=>(o[id]=$(id).value,o),{})));}catch(e){}
+}
+
+// 還原本機保存
+try{const d=JSON.parse(localStorage.getItem(LS))||{};IDS.forEach(id=>{if(d[id]!=null&&d[id]!=='')$(id).value=d[id];});}catch(e){}
+IDS.forEach(id=>$(id).addEventListener('input',calc));
+
+// 截圖辨識（共用期貨頁的 Worker 網址）
+const OCR_URL_KEY='marginCalc_ocrUrl';
+$('ocrUrl').value=localStorage.getItem(OCR_URL_KEY)||'';
+$('ocrUrl').addEventListener('input',()=>localStorage.setItem(OCR_URL_KEY,$('ocrUrl').value.trim()));
+$('ocrBtn').addEventListener('click',()=>{
+  if(!$('ocrUrl').value.trim()){$('ocrStatus').textContent='請先貼上辨識服務（Worker）網址';return;}
+  $('ocrFile').click();
+});
+$('ocrFile').addEventListener('change',async e=>{
+  const f=e.target.files[0],url=$('ocrUrl').value.trim();
+  if(!f||!url){e.target.value='';return;}
+  $('ocrStatus').textContent='辨識中…請稍候（約數秒）';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+    const resp=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({kind:'margin',image:b64,media_type:f.type||'image/png'})});
+    const data=await resp.json();
+    if(data.error){$('ocrStatus').textContent='辨識失敗：'+data.error+'（可改用手動）';return;}
+    const map={finCol:'fin_collateral',finLoan:'fin_loan',shortCol:'short_collateral',shortAmt:'short_amount',pledge:'pledge'};
+    let n=0;
+    for(const k in map){ if(data[map[k]]!=null){ $(k).value=data[map[k]]; n++; } }
+    calc();
+    $('ocrStatus').textContent=n?('已帶入 '+n+' 個欄位 ✓ 請務必核對金額'):'沒有辨識到欄位，請改用手動輸入';
+  }catch(err){$('ocrStatus').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）';}
+  finally{e.target.value='';}
+});
+
+// 防止捲動改到數字
+document.addEventListener('wheel',e=>{const el=document.activeElement;
+  if(el&&el.tagName==='INPUT'&&el.type==='number')el.blur();},{passive:true});
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+calc();
+</script>
+</body></html>
