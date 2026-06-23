@@ -43,6 +43,9 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{
 input:focus,select:focus{outline:none;border-color:var(--accent)}
 .row{display:flex;gap:10px}.row .field{flex:1}
 .hidden{display:none}
+.abtn{width:100%;padding:11px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer}
+.abtn.del{color:var(--red)}
 /* 多檔部位列 */
 .prow{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--bg)}
 .prow .pName{width:100%;padding:9px 10px;font-size:14px;margin-bottom:6px}
@@ -81,6 +84,24 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
   <a href="./index.html" style="color:#93a0b8;text-decoration:none;font-size:13px">← 首頁</a>
   <h1>股票期貨 · 追繳保證金試算</h1>
   <div class="sub">填入數字，自動算出「我要補多少錢」</div>
+
+  <!-- 帳戶切換 -->
+  <div class="card">
+    <h2>帳戶（每個人各自保存）</h2>
+    <div class="row">
+      <div class="field" style="flex:2;margin-bottom:0"><label>選擇帳戶</label>
+        <select id="acctSel"></select></div>
+      <div class="field" style="margin-bottom:0;align-self:end">
+        <button class="abtn" id="acctAdd">＋ 新增</button></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field" style="flex:2;margin-bottom:0"><label>此帳戶名稱（可改成人名）</label>
+        <input type="text" id="acctName" placeholder="例：鄭○隆"></div>
+      <div class="field" style="margin-bottom:0;align-self:end">
+        <button class="abtn del" id="acctDel">刪除</button></div>
+    </div>
+    <div class="hint" style="margin-top:8px">資料自動存在這台裝置的瀏覽器，關掉再開都還在；切換帳戶看各自的部位。</div>
+  </div>
 
   <!-- 模式選擇 -->
   <div class="card">
@@ -263,37 +284,36 @@ const num=el=>{const v=parseFloat(typeof el==='string'?$(el).value:el.value);ret
 const fmtNT=n=>'NT$ '+Math.round(n).toLocaleString('en-US');
 const fmtPx=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
 
-let mode='statement', dir='long', sub='amount';
+let mode='statement', dir='long', sub='amount', imAmtAuto=true;
 const HINTS={
   statement:'直接照抄對帳單的「權益數、原始保證金、維持保證金」即可。',
   positions:'一檔一列填入口數、成交均價、市價；再帶入本日餘額與保證金。',
   single:'用單一部位的進場價/現價試算，含預估追繳價位。'
 };
 
-// 模式切換
-$('segMode').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
-  mode=b.dataset.mode;
-  [...$('segMode').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('paneStatement').classList.toggle('hidden',mode!=='statement');
-  $('panePositions').classList.toggle('hidden',mode!=='positions');
-  $('paneSingle').classList.toggle('hidden',mode!=='single');
-  $('modeHint').textContent=HINTS[mode];
-  calc();
-});
-$('segDir').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
-  dir=b.dataset.dir;
-  [...$('segDir').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('segDir').classList.toggle('short',dir==='short'); calc();
-});
-$('segSub').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
-  sub=b.dataset.sub;
-  [...$('segSub').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('cardAmount').classList.toggle('hidden',sub!=='amount');
-  $('cardRate').classList.toggle('hidden',sub!=='rate'); calc();
-});
+// 模式切換（抽成函式，方便還原已保存狀態）
+function applyMode(m){
+  mode=m;
+  [...$('segMode').children].forEach(x=>x.classList.toggle('on',x.dataset.mode===m));
+  $('paneStatement').classList.toggle('hidden',m!=='statement');
+  $('panePositions').classList.toggle('hidden',m!=='positions');
+  $('paneSingle').classList.toggle('hidden',m!=='single');
+  $('modeHint').textContent=HINTS[m];
+}
+function applyDir(d){
+  dir=d;
+  [...$('segDir').children].forEach(x=>x.classList.toggle('on',x.dataset.dir===d));
+  $('segDir').classList.toggle('short',d==='short');
+}
+function applySub(s){
+  sub=s;
+  [...$('segSub').children].forEach(x=>x.classList.toggle('on',x.dataset.sub===s));
+  $('cardAmount').classList.toggle('hidden',s!=='amount');
+  $('cardRate').classList.toggle('hidden',s!=='rate');
+}
+$('segMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;applyMode(b.dataset.mode);calc();save();});
+$('segDir').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;applyDir(b.dataset.dir);calc();save();});
+$('segSub').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;applySub(b.dataset.sub);calc();save();});
 
 // 多檔部位列
 function rowTemplate(){
@@ -311,16 +331,15 @@ function rowTemplate(){
   return d;
 }
 function addRow(){ $('rows').appendChild(rowTemplate()); }
-$('addRow').addEventListener('click',()=>{addRow();calc();});
+$('addRow').addEventListener('click',()=>{addRow();calc();save();});
 $('rows').addEventListener('click',e=>{
   if(e.target.classList.contains('pDel')){
     if($('rows').children.length>1) e.target.closest('.prow').remove();
-    calc();
+    calc();save();
   }
 });
-$('rows').addEventListener('input',calc);
-$('rows').addEventListener('change',calc);
-addRow();addRow();addRow();
+$('rows').addEventListener('input',()=>{calc();save();});
+$('rows').addEventListener('change',()=>{calc();save();});
 
 function positionsTotal(){
   const mult=num('posMult')||0; let total=0, any=false;
@@ -418,11 +437,16 @@ function calc(){
     const lots=num('lots'),mult=num('mult'),entry=num('entry'),now=num('now');
     let im=null,mm=null;
     if(sub==='amount'){
-      let perLot=num('imAmt'); const rate=num('imRate'), r=num('mmRatio');
-      // 每口原始保證金留空或填 0 → 用「進場價 × 每口股數 × 保證金比率%」自動估算一口
-      if((perLot==null||perLot===0)&&entry!=null&&mult!=null&&rate!=null)
-        perLot=entry*mult*rate/100;
-      $('autoIM').textContent = perLot!=null ? '自動估算一口 ≈ '+fmtNT(perLot) : '　';
+      const rate=num('imRate'), r=num('mmRatio'); let perLot;
+      if(imAmtAuto){ // 欄位留空 → 用「進場價 × 每口股數 × 保證金比率%」自動算一口，並帶入欄位
+        if(entry!=null&&mult!=null&&rate!=null){
+          perLot=entry*mult*rate/100; $('imAmt').value=Math.round(perLot);
+        }else{ perLot=null; $('imAmt').value=''; }
+        $('autoIM').textContent = perLot!=null ? '已自動帶入一口（可自行修改）' : '　';
+      }else{ // 使用者自己輸入的金額
+        perLot=num('imAmt');
+        $('autoIM').textContent = '使用你輸入的每口金額（清空可回到自動）';
+      }
       if(perLot!=null&&lots!=null){im=perLot*lots; if(r!=null)mm=im*r;}
     }else{
       const ip=num('imPct'),mp=num('mmPct');
@@ -445,11 +469,84 @@ function calc(){
   }
 }
 
+// 每口原始保證金：留空自動帶入；自行輸入就以你的為準，清空回到自動
+$('imAmt').addEventListener('input',()=>{ imAmtAuto=($('imAmt').value.trim()===''); });
+
+// 靜態欄位變動 → 重算並保存
 document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input')
-  .forEach(el=>el.addEventListener('input',calc));
-$('target').addEventListener('input',calc);
-$('modeHint').textContent=HINTS[mode];
-calc();
+  .forEach(el=>el.addEventListener('input',()=>{calc();save();}));
+$('target').addEventListener('input',()=>{calc();save();});
+
+/* ===== 帳戶切換 ＋ 本機自動保存 ===== */
+const LS='marginCalc_accts_v1';
+let store=null;
+function snapshot(){
+  const inputs={};
+  document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input,#target')
+    .forEach(el=>{ if(el.id) inputs[el.id]=el.value; });
+  const rows=[...$('rows').querySelectorAll('.prow')].map(r=>({
+    name:r.querySelector('.pName').value, bs:r.querySelector('.pBs').value,
+    lots:r.querySelector('.pLots').value, avg:r.querySelector('.pAvg').value,
+    mkt:r.querySelector('.pMkt').value
+  }));
+  return {mode,dir,sub,imAmtAuto,inputs,rows};
+}
+function persist(){ try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(e){} }
+function save(){ if(!store)return; store.accounts[store.current].data=snapshot(); persist(); }
+function applyData(d){
+  d=d||{};
+  $('rows').innerHTML='';
+  const rows=(d.rows&&d.rows.length)?d.rows:[{},{},{}];
+  rows.forEach(rd=>{
+    const el=rowTemplate(); $('rows').appendChild(el);
+    el.querySelector('.pName').value=rd.name||'';
+    if(rd.bs)el.querySelector('.pBs').value=rd.bs;
+    el.querySelector('.pLots').value=rd.lots||'';
+    el.querySelector('.pAvg').value=rd.avg||'';
+    el.querySelector('.pMkt').value=rd.mkt||'';
+  });
+  const inp=d.inputs||{};
+  document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input,#target')
+    .forEach(el=>{ if(el.id) el.value=(inp[el.id]!=null?inp[el.id]:el.defaultValue); });
+  imAmtAuto=(d.imAmtAuto!=null)?d.imAmtAuto:!(($('imAmt').value||'').trim());
+  applySub(d.sub||'amount'); applyDir(d.dir||'long'); applyMode(d.mode||'statement');
+  calc();
+}
+function renderAcctSel(){
+  const sel=$('acctSel'); sel.innerHTML='';
+  store.accounts.forEach((a,i)=>{
+    const o=document.createElement('option'); o.value=i;
+    o.textContent=a.name||('帳戶'+(i+1)); sel.appendChild(o);
+  });
+  sel.value=store.current;
+  $('acctName').value=store.accounts[store.current].name||'';
+}
+function switchAcct(i){ save(); store.current=i; persist(); applyData(store.accounts[i].data); renderAcctSel(); }
+$('acctSel').addEventListener('change',e=>switchAcct(+e.target.value));
+$('acctName').addEventListener('input',e=>{
+  const i=store.current; store.accounts[i].name=e.target.value;
+  $('acctSel').options[i].textContent=e.target.value||('帳戶'+(i+1)); persist();
+});
+$('acctAdd').addEventListener('click',()=>{
+  save(); store.accounts.push({name:'帳戶'+(store.accounts.length+1),data:null});
+  store.current=store.accounts.length-1; persist(); applyData(null); renderAcctSel();
+});
+$('acctDel').addEventListener('click',()=>{
+  if(!confirm('確定刪除「'+(store.accounts[store.current].name||'此帳戶')+'」的所有資料？'))return;
+  if(store.accounts.length<=1){ store.accounts=[{name:'帳戶1',data:null}]; store.current=0; }
+  else{ store.accounts.splice(store.current,1); store.current=Math.min(store.current,store.accounts.length-1); }
+  persist(); applyData(store.accounts[store.current].data); renderAcctSel();
+});
+
+// 啟動：載入帳戶（首次預設三個）
+(function(){
+  try{ store=JSON.parse(localStorage.getItem(LS)); }catch(e){}
+  if(!store||!Array.isArray(store.accounts)||!store.accounts.length)
+    store={current:0,accounts:[{name:'帳戶1',data:null},{name:'帳戶2',data:null},{name:'帳戶3',data:null}]};
+  if(store.current>=store.accounts.length) store.current=0;
+  renderAcctSel();
+  applyData(store.accounts[store.current].data);
+})();
 
 // 防止捲動／滑動時不小心改到數字欄位的值（number 欄位通病）
 document.addEventListener('wheel', e=>{
