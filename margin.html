@@ -149,6 +149,13 @@ details p{font-size:12px;color:#8392ab;margin:8px 0 0}
       <div id="rows"></div>
       <button class="addbtn" id="addRow">＋ 新增一檔</button>
       <div class="subtotal"><span>未沖銷浮動損益合計</span><span class="v" id="posTotal">—</span></div>
+
+      <div class="field" style="margin:14px 0 0"><label>📷 截圖自動辨識（選填）</label>
+        <input type="text" id="ocrUrl" placeholder="貼上你的 Worker 網址">
+        <div class="hint">設定後可上傳部位截圖自動帶入；留空則手動輸入。設定方式見 worker/README。</div></div>
+      <input type="file" id="ocrFile" accept="image/*" style="display:none">
+      <button class="addbtn" id="ocrBtn" style="border-style:solid;color:var(--green);margin-top:8px">📷 上傳截圖自動帶入</button>
+      <div class="hint" id="ocrStatus" style="text-align:center"></div>
     </div>
     <div class="card">
       <h2>帶入帳戶資料（算風險指標／追繳）</h2>
@@ -483,7 +490,7 @@ let store=null;
 function snapshot(){
   const inputs={};
   document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input,#target')
-    .forEach(el=>{ if(el.id) inputs[el.id]=el.value; });
+    .forEach(el=>{ if(el.id && !el.id.startsWith('ocr')) inputs[el.id]=el.value; });
   const rows=[...$('rows').querySelectorAll('.prow')].map(r=>({
     name:r.querySelector('.pName').value, bs:r.querySelector('.pBs').value,
     lots:r.querySelector('.pLots').value, avg:r.querySelector('.pAvg').value,
@@ -507,7 +514,7 @@ function applyData(d){
   });
   const inp=d.inputs||{};
   document.querySelectorAll('#paneStatement input,#panePositions input,#paneSingle input,#target')
-    .forEach(el=>{ if(el.id) el.value=(inp[el.id]!=null?inp[el.id]:el.defaultValue); });
+    .forEach(el=>{ if(el.id && !el.id.startsWith('ocr')) el.value=(inp[el.id]!=null?inp[el.id]:el.defaultValue); });
   imAmtAuto=(d.imAmtAuto!=null)?d.imAmtAuto:!(($('imAmt').value||'').trim());
   applySub(d.sub||'amount'); applyDir(d.dir||'long'); applyMode(d.mode||'statement');
   calc();
@@ -547,6 +554,43 @@ $('acctDel').addEventListener('click',()=>{
   renderAcctSel();
   applyData(store.accounts[store.current].data);
 })();
+
+// 截圖自動辨識（雲端 AI）：Worker 網址存在本機（全裝置共用，非各帳戶）
+const OCR_URL_KEY='marginCalc_ocrUrl';
+$('ocrUrl').value=localStorage.getItem(OCR_URL_KEY)||'';
+$('ocrUrl').addEventListener('input',()=>localStorage.setItem(OCR_URL_KEY,$('ocrUrl').value.trim()));
+$('ocrBtn').addEventListener('click',()=>{
+  if(!$('ocrUrl').value.trim()){ $('ocrStatus').textContent='請先在上方貼上辨識服務（Worker）網址'; return; }
+  $('ocrFile').click();
+});
+$('ocrFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; const url=$('ocrUrl').value.trim();
+  if(!f||!url){ e.target.value=''; return; }
+  $('ocrStatus').textContent='辨識中…請稍候（約數秒）';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();
+      r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(f);});
+    const resp=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({image:b64,media_type:f.type||'image/png'})});
+    const data=await resp.json();
+    if(data.error){ $('ocrStatus').textContent='辨識失敗：'+data.error+'（可改用手動輸入）'; return; }
+    const arr=Array.isArray(data.positions)?data.positions:[];
+    if(!arr.length){ $('ocrStatus').textContent='沒有辨識到部位，請改用手動輸入'; return; }
+    $('rows').innerHTML='';
+    arr.forEach(p=>{
+      const el=rowTemplate(); $('rows').appendChild(el);
+      el.querySelector('.pName').value=p.name||'';
+      el.querySelector('.pBs').value=(p.side==='sell'?'sell':'buy');
+      el.querySelector('.pLots').value=(p.lots??'');
+      el.querySelector('.pAvg').value=(p.avg??'');
+      el.querySelector('.pMkt').value=(p.mkt??'');
+    });
+    if(!$('rows').children.length) addRow();
+    calc(); save();
+    $('ocrStatus').textContent='已帶入 '+arr.length+' 檔 ✓ 請務必核對口數／均價／市價';
+  }catch(err){ $('ocrStatus').textContent='辨識失敗：'+err+'（檢查 Worker 網址或改用手動）'; }
+  finally{ e.target.value=''; }
+});
 
 // 防止捲動／滑動時不小心改到數字欄位的值（number 欄位通病）
 document.addEventListener('wheel', e=>{
