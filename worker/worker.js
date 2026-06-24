@@ -87,6 +87,28 @@ const STMT_SCHEMA = {
   additionalProperties: false,
 };
 
+// 股票融資「維持率查詢 → 整戶資訊」畫面（直接抓真實融資餘額）
+const MARGIN_ACCT_PROMPT =
+  "You are extracting a Taiwan stock margin 'whole-account maintenance ratio' screen " +
+  "(維持率查詢 / 整戶資訊) from a screenshot. Return these aggregate numbers (0 if absent): " +
+  "fin_collateral (融資債權市值加總 / 融資擔保品市值總額), " +
+  "fin_loan (今日融資餘額 / 融資餘額 — this is the real total margin loan), " +
+  "short_collateral (融券擔保品市值), short_amount (融券總額/融券保證金), " +
+  "pledge (抵繳保證品市值/抵繳金額). All numbers must be plain numbers with no commas or units.";
+
+const MARGIN_ACCT_SCHEMA = {
+  type: "object",
+  properties: {
+    fin_collateral: { type: "number" },
+    fin_loan: { type: "number" },
+    short_collateral: { type: "number" },
+    short_amount: { type: "number" },
+    pledge: { type: "number" },
+  },
+  required: ["fin_collateral", "fin_loan", "short_collateral", "short_amount", "pledge"],
+  additionalProperties: false,
+};
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -104,6 +126,7 @@ export default {
         return json({ error: "missing image" }, 400, cors);
       let prompt = PROMPT, schema = SCHEMA;
       if (kind === "margin") { prompt = MARGIN_PROMPT; schema = MARGIN_SCHEMA; }
+      else if (kind === "margin_acct") { prompt = MARGIN_ACCT_PROMPT; schema = MARGIN_ACCT_SCHEMA; }
       else if (kind === "statement") { prompt = STMT_PROMPT; schema = STMT_SCHEMA; }
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
